@@ -5,7 +5,7 @@ import numpy as np
 import re
 import evaluate
 
-# IMAGECLEF 2023 CAPTION - CAPTION PREDICTION
+# IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
 
 case_sensitive = False
