@@ -8,124 +8,124 @@ import evaluate
 # IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
 
-case_sensitive = False
+    case_sensitive = False
 
-def __init__(self, ground_truth_path, **kwargs):
-    """
-    This is the evaluator class which will be used for the evaluation.
-    Please note that the class name should be `CaptionEvaluator`
-    `ground_truth` : Holds the path for the ground truth which is used to score the submissions.
-    """
-    self.ground_truth_path = ground_truth_path
-    self.gt = self.load_gt()
+    def __init__(self, ground_truth_path, **kwargs):
+        """
+        This is the evaluator class which will be used for the evaluation.
+        Please note that the class name should be `CaptionEvaluator`
+        `ground_truth` : Holds the path for the ground truth which is used to score the submissions.
+        """
+        self.ground_truth_path = ground_truth_path
+        self.gt = self.load_gt()
 
-    ######## Load Metrics from HuggingFace ########
-    print('Loading ROUGE and BERTScore from HuggingFace')
-    self.scorers = {
-        'rouge': (
-            evaluate.load('rouge'),
-        ),
-        'bert_scorer': (
-            evaluate.load('bertscore'),
-        )}
+        ######## Load Metrics from HuggingFace ########
+        print('Loading ROUGE and BERTScore from HuggingFace')
+        self.scorers = {
+            'rouge': (
+                evaluate.load('rouge'),
+            ),
+            'bert_scorer': (
+                evaluate.load('bertscore'),
+            )}
 
 
-def _evaluate(self, client_payload, _context={}):
-    """
-    This is the only method that will be called by the framework
-    returns a _result_object that can contain up to 2 different scores
-    `client_payload["submission_file_path"]` will hold the path of the submission file
-    """
-    print("evaluate...")
-    # Load submission file path
-    submission_file_path = client_payload["submission_file_path"]
-    # Load preditctions and validate format
-    predictions = self.load_predictions(submission_file_path)
+    def _evaluate(self, client_payload, _context={}):
+        """
+        This is the only method that will be called by the framework
+        returns a _result_object that can contain up to 2 different scores
+        `client_payload["submission_file_path"]` will hold the path of the submission file
+        """
+        print("evaluate...")
+        # Load submission file path
+        submission_file_path = client_payload["submission_file_path"]
+        # Load preditctions and validate format
+        predictions = self.load_predictions(submission_file_path)
 
-    bleu_score = self.compute_primary_score(predictions)
-    score_secondary = self.compute_secondary_score(predictions)
+        bleu_score = self.compute_primary_score(predictions)
+        score_secondary = self.compute_secondary_score(predictions)
 
-    _result_object = {
-        "score": bleu_score,
-        "score_secondary": score_secondary
-    }
+        _result_object = {
+            "score": bleu_score,
+            "score_secondary": score_secondary
+        }
 
-    assert "score" in _result_object
-    assert "score_secondary" in _result_object
+        assert "score" in _result_object
+        assert "score_secondary" in _result_object
 
-    return _result_object
+        return _result_object
 
-def load_gt(self):
-    """
-    Load and return groundtruth data
-    """
-    print("loading ground truth...")
+    def load_gt(self):
+        """
+        Load and return groundtruth data
+        """
+        print("loading ground truth...")
 
-    pairs = {}
-    with open(self.ground_truth_path) as csvfile:
-        reader = csv.reader(csvfile)
+        pairs = {}
+        with open(self.ground_truth_path) as csvfile:
+            reader = csv.reader(csvfile)
 
-        # Check if the first line is a header and skip it
-        first_line = next(reader)
+            # Check if the first line is a header and skip it
+            first_line = next(reader)
 
-        if "ID" in first_line[0]:
-            pass
-        else:
-            pairs[first_line[0]] = first_line[1]
+            if "ID" in first_line[0]:
+                pass
+            else:
+                pairs[first_line[0]] = first_line[1]
 
-        for row in reader:
-            pairs[row[0]] = row[1]
-    return pairs
-
-def load_predictions(self, submission_file_path):
-    """
-    Load and return a predictions object (dictionary) that contains the submitted data that will be used in the _evaluate method
-    Validation of the runfile format has to be handled here. simply throw an Exception if there is a validation error.
-    """
-    print("load predictions...")
-
-    pairs = {}
-    image_ids_gt = set(self.gt.keys())
-    with open(submission_file_path) as csvfile:
-        reader = csv.reader(csvfile)
-
-        lineCnt = 0
-        occured_images = []
-        for row in reader:
-            if "ID" not in row[0]:
-                lineCnt += 1
-
-                # less than two pipe separated tokens on line => Error
-                if(len(row) < 2):
-                    self.raise_exception("Wrong format: Each line must consist of an image ID followed by a ',' (comma) and a caption ({}).",
-                                            lineCnt, "<imageID><comma><caption>")
-
-                    image_id = row[0]
-
-                    # Image ID does not exist in testset => Error
-                    if image_id not in image_ids_gt:
-                        self.raise_exception(
-                            "Image ID '{}' in submission file does not exist in testset.", lineCnt, image_id)
-                        # raise Exception("Image ID '{}' in submission file does not exist in testset {}"
-                        #     .format(image_id,self.line_nbr_string(lineCnt)))
-
-                    # image id occured at least twice in file => Error
-                    if image_id in occured_images:
-                        self.raise_exception(
-                            "Image ID '{}' was specified more than once in submission file.", lineCnt, image_id)
-                        # raise Exception("Image ID '{}' was specified more than once in submission file {}"
-                        #     .format(image_id, self.line_nbr_string(lineCnt)))
-
-                    occured_images.append(image_id)
-
-                    pairs[row[0]] = row[1]
-
-            # In case not all images from the testset are contained in the file => Error
-            if(len(occured_images) != len(image_ids_gt)):
-                self.raise_exception(
-                    "Number of image IDs in submission file not equal to number of image IDs in testset.", lineCnt)
-
+            for row in reader:
+                pairs[row[0]] = row[1]
         return pairs
+
+    def load_predictions(self, submission_file_path):
+        """
+        Load and return a predictions object (dictionary) that contains the submitted data that will be used in the _evaluate method
+        Validation of the runfile format has to be handled here. simply throw an Exception if there is a validation error.
+        """
+        print("load predictions...")
+
+        pairs = {}
+        image_ids_gt = set(self.gt.keys())
+        with open(submission_file_path) as csvfile:
+            reader = csv.reader(csvfile)
+
+            lineCnt = 0
+            occured_images = []
+            for row in reader:
+                if "ID" not in row[0]:
+                    lineCnt += 1
+
+                    # less than two pipe separated tokens on line => Error
+                    if(len(row) < 2):
+                        self.raise_exception("Wrong format: Each line must consist of an image ID followed by a ',' (comma) and a caption ({}).",
+                                                lineCnt, "<imageID><comma><caption>")
+
+                        image_id = row[0]
+
+                        # Image ID does not exist in testset => Error
+                        if image_id not in image_ids_gt:
+                            self.raise_exception(
+                                "Image ID '{}' in submission file does not exist in testset.", lineCnt, image_id)
+                            # raise Exception("Image ID '{}' in submission file does not exist in testset {}"
+                            #     .format(image_id,self.line_nbr_string(lineCnt)))
+
+                        # image id occured at least twice in file => Error
+                        if image_id in occured_images:
+                            self.raise_exception(
+                                "Image ID '{}' was specified more than once in submission file.", lineCnt, image_id)
+                            # raise Exception("Image ID '{}' was specified more than once in submission file {}"
+                            #     .format(image_id, self.line_nbr_string(lineCnt)))
+
+                        occured_images.append(image_id)
+
+                        pairs[row[0]] = row[1]
+
+                # In case not all images from the testset are contained in the file => Error
+                if(len(occured_images) != len(image_ids_gt)):
+                    self.raise_exception(
+                        "Number of image IDs in submission file not equal to number of image IDs in testset.", lineCnt)
+
+            return pairs
 
     def raise_exception(self, message, record_count, *args):
         raise Exception(message.format(
@@ -244,7 +244,7 @@ def load_predictions(self, submission_file_path):
                 # Calculate the ROUGE score
                 else:
                     rouge1_score_f1 = self.scorers["rouge"][0].compute(predictions=[candidate_caption],
-                                                                       references=[gt_caption], use_aggregator=False, use_stemmer=False)
+                                                                    references=[gt_caption], use_aggregator=False, use_stemmer=False)
             # Handle problematic cases where ROUGE score calculation is impossible
             except Exception as e:
                 print(e)
@@ -260,9 +260,9 @@ def load_predictions(self, submission_file_path):
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
 
-    ground_truth_path = "caption_prediction_test_gt.csv"
+    ground_truth_path = "/home/tabea/projects/clef-caption-evaluation/ImageCLEFmedical_Caption_test_gt/caption_prediction_test_gt.csv"
 
-    submission_file_path = "submission.csv"
+    submission_file_path = "/home/tabea/projects/clef-caption-evaluation/ImageCLEFmedical_Caption_test_gt/caption_prediction_test_gt.csv"
 
     _client_payload = {}
     _client_payload["submission_file_path"] = submission_file_path
