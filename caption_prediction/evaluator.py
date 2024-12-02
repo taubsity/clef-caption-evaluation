@@ -173,7 +173,7 @@ class CaptionEvaluator:
                     bert_score = 1
                 # Calculate the BERTScore
                 else:
-                    bert_score = self.scorers["bert_scorer"][0].compute(predictions=[candidate_caption], references=[gt_caption], model_type='microsoft/deberta-xlarge-mnli')
+                    bert_score = self.scorers["bert_scorer"][0].compute(predictions=[candidate_caption], references=[gt_caption], model_type='microsoft/deberta-xlarge-mnli', idf=True)
             # Handle problematic cases where BERTScore calculation is impossible
             except Exception as e:
                 print(e)
@@ -234,6 +234,8 @@ class CaptionEvaluator:
         # Calculate the average of all scores
         return np.mean(rouge_scores)
 
+    def compute_alignscore(self, candidate_pairs):
+        return 0
 
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
