@@ -5,6 +5,14 @@ import numpy as np
 import re
 import evaluate
 from tqdm import tqdm
+from alignscore import AlignScore
+import sys
+
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.insert(1, "../aci-bench/evaluation")
+
+import UMLS_evaluation as medcon
+
 
 # IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
@@ -21,15 +29,11 @@ class CaptionEvaluator:
         self.gt = self.load_gt()
 
         ######## Load Metrics from HuggingFace ########
-        print('Loading ROUGE and BERTScore from HuggingFace')
+        print("Loading ROUGE and BERTScore from HuggingFace")
         self.scorers = {
-            'rouge': (
-                evaluate.load('rouge'),
-            ),
-            'bert_scorer': (
-                evaluate.load('bertscore'),
-            )}
-
+            "rouge": (evaluate.load("rouge"),),
+            "bert_scorer": (evaluate.load("bertscore"),),
+        }
 
     def _evaluate(self, client_payload, _context={}):
         # """
@@ -38,7 +42,7 @@ class CaptionEvaluator:
         # `client_payload["submission_file_path"]` will hold the path of the submission file
         # """
         """
-        This method that will be called by the framework returns a _result_object that can contains 
+        This method that will be called by the framework returns a _result_object that can contains
         different scores. `client_payload["submission_file_path"]` will hold the path of the submission file.
         """
         print("evaluate...")
@@ -63,7 +67,7 @@ class CaptionEvaluator:
             "rouge": rouge,
             "similarity": sim,
             "medcon": medcon,
-            "align": alignscore
+            "align": alignscore,
         }
 
         # assert "score" in _result_object
@@ -101,48 +105,59 @@ class CaptionEvaluator:
 
             for row in tqdm(reader):
                 # less than two pipe separated tokens on line => Error
-                if (len(row) < 2):
-                    self.raise_exception("Wrong format: Each line must consist of an image ID followed by a ',' (comma) and a caption ({}).",
-                                            lineCnt, "<imageID><comma><caption>")
-                
+                if len(row) < 2:
+                    self.raise_exception(
+                        "Wrong format: Each line must consist of an image ID followed by a ',' (comma) and a caption ({}).",
+                        lineCnt,
+                        "<imageID><comma><caption>",
+                    )
+
                 # Image ID does not exist in testset => Error
                 image_id = row[0]
-                if (image_id not in image_ids_gt):
+                if image_id not in image_ids_gt:
                     self.raise_exception(
-                        "Image ID '{}' in submission file does not exist in testset.", lineCnt, image_id)
+                        "Image ID '{}' in submission file does not exist in testset.",
+                        lineCnt,
+                        image_id,
+                    )
 
                 # image id occured at least twice in file => Error
-                if (image_id in occured_images):
+                if image_id in occured_images:
                     self.raise_exception(
-                        "Image ID '{}' was specified more than once in submission file.", lineCnt, image_id)
-                
-                
+                        "Image ID '{}' was specified more than once in submission file.",
+                        lineCnt,
+                        image_id,
+                    )
+
                 pairs[row[0]] = row[1]
-            
+
                 occured_images.append(image_id)
                 lineCnt += 1
 
         # In case not all images from the testset are contained in the file => Error
-        if(len(occured_images) != len(image_ids_gt)):
+        if len(occured_images) != len(image_ids_gt):
             self.raise_exception(
-                f"Number of image IDs in submission file not equal to number of image IDs in testset.\nNumber in testset: {len(image_ids_gt)}\nNumber in submission: {len(occured_images)}", lineCnt)
+                f"Number of image IDs in submission file not equal to number of image IDs in testset.\nNumber in testset: {len(image_ids_gt)}\nNumber in submission: {len(occured_images)}",
+                lineCnt,
+            )
 
-            
         return pairs
 
     def raise_exception(self, message, record_count, *args):
-        raise Exception(message.format(
-            *args)+" Error occured at record line {}.".format(record_count))
+        raise Exception(
+            message.format(*args)
+            + " Error occured at record line {}.".format(record_count)
+        )
 
     def compute_bertscore(self, candidate_pairs):
         # Hide warnings
-        warnings.filterwarnings('ignore')
+        warnings.filterwarnings("ignore")
 
         # Remove punctuation from string
-        translator = str.maketrans('', '', string.punctuation)
+        translator = str.maketrans("", "", string.punctuation)
 
         # Regex for numbers
-        number_regex = re.compile(r'\d+')
+        number_regex = re.compile(r"\d+")
 
         bert_scores = []
 
@@ -158,13 +173,12 @@ class CaptionEvaluator:
                 gt_caption = gt_caption.lower()
 
             # replace numbers with the token 'number'
-            candidate_caption = number_regex.sub('number', candidate_caption)
-            gt_caption = number_regex.sub('number', gt_caption)
+            candidate_caption = number_regex.sub("number", candidate_caption)
+            gt_caption = number_regex.sub("number", gt_caption)
 
             # Remove punctuation using the translator
             candidate_caption = candidate_caption.translate(translator)
             gt_caption = gt_caption.translate(translator)
-
 
             # Calculate BERTScore for the current caption
             try:
@@ -173,25 +187,29 @@ class CaptionEvaluator:
                     bert_score = 1
                 # Calculate the BERTScore
                 else:
-                    bert_score = self.scorers["bert_scorer"][0].compute(predictions=[candidate_caption], references=[gt_caption], model_type='microsoft/deberta-xlarge-mnli', idf=True)
+                    bert_score = self.scorers["bert_scorer"][0].compute(
+                        predictions=[candidate_caption],
+                        references=[gt_caption],
+                        model_type="microsoft/deberta-xlarge-mnli",
+                        idf=True,
+                    )
             # Handle problematic cases where BERTScore calculation is impossible
             except Exception as e:
                 print(e)
-                #raise Exception('Problem with {} {}', gt_caption, candidate_caption)
+                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
             bert_scores.append(bert_score["recall"])
 
         return np.mean(bert_scores)
 
-
     def compute_rouge(self, candidate_pairs):
         # Hide warnings
-        warnings.filterwarnings('ignore')
+        warnings.filterwarnings("ignore")
 
         # Remove punctuation from string
-        translator = str.maketrans('', '', string.punctuation)
+        translator = str.maketrans("", "", string.punctuation)
 
         # Regex for numbers
-        number_regex = re.compile(r'\d+')
+        number_regex = re.compile(r"\d+")
 
         rouge_scores = []
 
@@ -207,8 +225,8 @@ class CaptionEvaluator:
                 gt_caption = gt_caption.lower()
 
             # replace numbers with the token 'number'
-            candidate_caption = number_regex.sub('number', candidate_caption)
-            gt_caption = number_regex.sub('number', gt_caption)
+            candidate_caption = number_regex.sub("number", candidate_caption)
+            gt_caption = number_regex.sub("number", gt_caption)
 
             # Remove punctuation using the translator
             candidate_caption = candidate_caption.translate(translator)
@@ -221,12 +239,16 @@ class CaptionEvaluator:
                     rouge1_score_f1 = 1
                 # Calculate the ROUGE score
                 else:
-                    rouge1_score_f1 = self.scorers["rouge"][0].compute(predictions=[candidate_caption],
-                                                                    references=[gt_caption], use_aggregator=False, use_stemmer=False)
+                    rouge1_score_f1 = self.scorers["rouge"][0].compute(
+                        predictions=[candidate_caption],
+                        references=[gt_caption],
+                        use_aggregator=False,
+                        use_stemmer=False,
+                    )
             # Handle problematic cases where ROUGE score calculation is impossible
             except Exception as e:
                 print(e)
-                #raise Exception('Problem with {} {}', gt_caption, candidate_caption)
+                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
 
             # Append the score to the list of scores
             rouge_scores.append(rouge1_score_f1["rouge1"])
@@ -235,13 +257,87 @@ class CaptionEvaluator:
         return np.mean(rouge_scores)
 
     def compute_alignscore(self, candidate_pairs):
+        # Hide warnings
+        warnings.filterwarnings("ignore")
+
+        scorer = AlignScore(
+            model="roberta-large",
+            batch_size=32,
+            device="cuda:0",
+            ckpt_path="../models/AlignScore/AlignScore-large.ckpt",
+            evaluation_mode="nli_sp",
+        )
+        align_scores = []
+
+        for image_key in candidate_pairs:
+
+            # Get candidate and GT caption
+            candidate_caption = candidate_pairs[image_key]
+            gt_caption = self.gt[image_key]
+
+            # Calculate Align score for the current caption
+            try:
+                # If both the GT and candidate are empty, assign a score of 1 for this caption
+                if len(gt_caption) == 0 and len(candidate_caption) == 0:
+                    score = 1
+                # Calculate the Align score
+                else:
+                    score = scorer.score(
+                        contexts=[gt_caption], claims=[candidate_caption]
+                    )
+
+            # Handle problematic cases where ROUGE score calculation is impossible
+            except Exception as e:
+                print(e)
+                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
+
+            # Append the score to the list of scores
+            align_scores.append(score[0])
+
+        return np.means(align_scores)
+
+    def compute_medcon(self, candidate_pairs):
+        # Hide warnings
+        warnings.filterwarnings("ignore")
+
+        medcon_scores = []
+
+        for image_key in candidate_pairs:
+
+            # Get candidate and GT caption
+            candidate_caption = candidate_pairs[image_key]
+            gt_caption = self.gt[image_key]
+
+            # Calculate Align score for the current caption
+            try:
+                # If both the GT and candidate are empty, assign a score of 1 for this caption
+                if len(gt_caption) == 0 and len(candidate_caption) == 0:
+                    score = 1
+                # Calculate the Align score
+                else:
+                    score = medcon.scoreumls_score_individual(
+                        gt_caption, candidate_caption
+                    )
+
+            # Handle problematic cases where ROUGE score calculation is impossible
+            except Exception as e:
+                print(e)
+                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
+
+            # Append the score to the list of scores
+            medcon_scores.append(score)
         return 0
+
 
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
-    ground_truth_path = "/home/tabea/projects/clef-caption-evaluation/ImageCLEFmedical_2024_Caption/valid_captions.csv"
+    ground_truth_path = (
+        "/home/tabea/projects/clef-caption-evaluation/texts/valid_captions.csv"
+    )
 
-    submission_file_path = "/home/tabea/projects/clef-caption-evaluation/ImageCLEFmedical_2024_Caption/valid_captions.csv"
+    submission_file_path = (
+        "/home/tabea/projects/clef-caption-evaluation/texts/valid_captions.csv"
+    )
 
     _client_payload = {}
     _client_payload["submission_file_path"] = submission_file_path
