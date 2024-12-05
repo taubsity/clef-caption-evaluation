@@ -7,11 +7,34 @@ import evaluate
 from tqdm import tqdm
 from alignscore import AlignScore
 import sys
+import base64
+import os
 
-# caution: path[0] is reserved for script path (or '' in REPL)
-sys.path.insert(1, "../aci-bench/evaluation")
+# Get the absolute path to the current directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-import UMLS_evaluation as medcon
+# Construct paths to the module directories
+aci_bench_evaluation_dir = os.path.join(current_dir, "..", "aci-bench", "evaluation")
+med_image_insights_dir = os.path.join(current_dir, "..", "MedImageInsights")
+
+# check if the directories exist
+if not os.path.exists(aci_bench_evaluation_dir):
+    raise Exception(
+        "aci-bench/evaluation directory not found at {}".format(
+            aci_bench_evaluation_dir
+        )
+    )
+if not os.path.exists(med_image_insights_dir):
+    raise Exception(
+        "MedImageInsights directory not found at {}".format(med_image_insights_dir)
+    )
+
+# Add these directories to sys.path
+sys.path.insert(0, aci_bench_evaluation_dir)
+sys.path.insert(0, med_image_insights_dir)
+
+from UMLS_evaluation import umls_score_individual
+from medimageinsightmodel import MedImageInsight
 
 
 # IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
@@ -53,16 +76,16 @@ class CaptionEvaluator:
 
         bertscore = self.compute_bertscore(predictions)
         rouge = self.compute_rouge(predictions)
-        sim = 0
-        medcon = 0
-        alignscore = 0
+        sim = self.compute_similarity(predictions)
+        medcon = self.compute_medcon(predictions)
+        alignscore = self.compute_alignscore(predictions)
 
-        # _result_object = {
-        #     "score": bert,
-        #     "score_secondary": rouge
-        # }
+        relevance = np.mean([bertscore, rouge, sim])
+        factuality = np.mean([medcon, alignscore])
 
         _result_object = {
+            "score": relevance,
+            "score_secondary": factuality,
             "bert": bertscore,
             "rouge": rouge,
             "similarity": sim,
@@ -70,8 +93,8 @@ class CaptionEvaluator:
             "align": alignscore,
         }
 
-        # assert "score" in _result_object
-        # assert "score_secondary" in _result_object
+        assert "score" in _result_object
+        assert "score_secondary" in _result_object
 
         return _result_object
 
@@ -264,7 +287,7 @@ class CaptionEvaluator:
             model="roberta-large",
             batch_size=32,
             device="cuda:0",
-            ckpt_path="../models/AlignScore/AlignScore-large.ckpt",
+            ckpt_path="models/AlignScore/AlignScore-large.ckpt",
             evaluation_mode="nli_sp",
         )
         align_scores = []
@@ -315,9 +338,7 @@ class CaptionEvaluator:
                     score = 1
                 # Calculate the Align score
                 else:
-                    score = medcon.scoreumls_score_individual(
-                        gt_caption, candidate_caption
-                    )
+                    score = umls_score_individual(gt_caption, candidate_caption)
 
             # Handle problematic cases where ROUGE score calculation is impossible
             except Exception as e:
@@ -328,15 +349,82 @@ class CaptionEvaluator:
             medcon_scores.append(score)
         return 0
 
+    def compute_similarity(self, candidate_pairs):
+        # Hide warnings
+        warnings.filterwarnings("ignore")
+
+        # Initialize classifier
+        classifier = MedImageInsight(
+            model_dir="../MedImageInsights/2024.09.27",
+            vision_model_name="medimageinsigt-v1.0.0.pt",
+            language_model_name="language_model.pth",
+        )
+
+        # Load model
+        classifier.load_model()
+
+        def read_image(image_path):
+            with open(image_path, "rb") as f:
+                return f.read()
+
+        image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
+        # check if image path exists and throw error if not
+        if not os.path.exists(image_dir):
+            raise Exception("Image directory does not exist at {}".format(image_dir))
+
+        sim_scores = []
+
+        for image_key in candidate_pairs:
+
+            # Get candidate and GT caption
+            candidate_caption = candidate_pairs[image_key]
+            gt_caption = self.gt[image_key]
+
+            image = base64.encodebytes(
+                read_image(os.path.join(image_dir, image_key + ".jpg"))
+            ).decode("utf-8")
+            images = [image]
+            texts = [candidate_caption]
+
+            # Image embeddings
+            embeddings = classifier.encode(images=images, texts=texts)
+
+            # Text embeddings
+            v = embeddings["image_embeddings"][0]
+            c = embeddings["text_embeddings"][0]
+
+            # scaling factor
+            w = 2.5
+
+            # Compute the cosine similarity between the image vector v and the caption vector c using the formula:
+            # cos(c,v)=c⋅v/∥c∥∥v∥​ here ⋅ denotes the dot product and ∥⋅∥ denotes the Euclidean norm.
+            try:
+                # If both the GT and candidate are empty, assign a score of 1 for this caption
+                if len(gt_caption) == 0 and len(candidate_caption) == 0:
+                    score = 0
+                # Calculate the score
+                else:
+                    cos = np.dot(c, v) / (np.linalg.norm(c) * np.linalg.norm(v))
+                    score = w * np.max([cos, 0])
+
+            # Handle problematic cases where score calculation is impossible
+            except Exception as e:
+                print(e)
+                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
+
+            # Append the score to the list of scores
+            sim_scores.append(score)
+        return np.mean(sim_scores)
+
 
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
     ground_truth_path = (
-        "/home/tabea/projects/clef-caption-evaluation/texts/valid_captions.csv"
+        "/home/tabea/projects/clef-caption-evaluation/data/valid/captions.csv"
     )
 
     submission_file_path = (
-        "/home/tabea/projects/clef-caption-evaluation/texts/valid_captions.csv"
+        "/home/tabea/projects/clef-caption-evaluation/data/valid/captions.csv"
     )
 
     _client_payload = {}
