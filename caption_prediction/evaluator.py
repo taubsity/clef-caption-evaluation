@@ -355,7 +355,7 @@ class CaptionEvaluator:
 
         # Initialize classifier
         classifier = MedImageInsight(
-            model_dir="../MedImageInsights/2024.09.27",
+            model_dir="MedImageInsights/2024.09.27",
             vision_model_name="medimageinsigt-v1.0.0.pt",
             language_model_name="language_model.pth",
         )
