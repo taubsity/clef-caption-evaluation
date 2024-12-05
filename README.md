@@ -16,18 +16,19 @@ pip install rouge-score bert-score evaluate absl-py
 ### Install MEDCON
 ```sh
 git clone https://github.com/wyim/aci-bench.git
-cd aci-bench/resources
+cd aci-bench
 ```
 
-Download https://download.nlm.nih.gov/umls/kss/2022AA/umls-2022AA-metathesaurus.zip into aci-bench/resources or copy the files manually
+You need to request a licence for UMLS to use MEDCON. Download https://download.nlm.nih.gov/umls/kss/2022AA/umls-2022AA-metathesaurus.zip into aci-bench/resources or copy MRCONSO.RRF and MRSTY.RRF manually. Skip the next step if the files are already in place.
 
 ```sh
+cd resources
 unzip umls-2022AA-metathesaurus.zip
 cp 2022AA/META/MRCONSO.RRF .
 cp 2022AA/META/MRSTY.RRF .
 cd ..
 ```
-Install quickumls
+For MEDCON you need to install quickumls.
 ```sh
 pip install quickumls
 python3 -m quickumls.install resources/ resources/des
@@ -36,7 +37,7 @@ pip install -r requirements.txt
 cd ..
 ```
 
-### install AlignScore
+### Install AlignScore
 ```sh
 git clone https://github.com/yuh-zha/AlignScore.git
 cd AlignScore
@@ -49,7 +50,7 @@ git clone https://huggingface.co/yzha/AlignScore
 cd ..
 ```
 
-### install MedImageInsights
+### Install MedImageInsights
 ```sh
 git lfs install
 git clone https://huggingface.co/lion-ai/MedImageInsights
