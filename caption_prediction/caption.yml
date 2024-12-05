@@ -7,3 +7,6 @@ dependencies:
   - pip
   - git-lfs
   - cxx-compiler
+  - gcc
+  - pybind11
+  - nmslib

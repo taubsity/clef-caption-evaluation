@@ -4,8 +4,9 @@
 
 ### Create and Activate Conda Environment
 ```sh
-conda env update -f caption_prediction/caption.yml
-conda activate clef-caption
+mkdir env
+conda env update -f caption_prediction/caption.yml --prefix env/clef-caption
+conda activate env/clef-caption
 ```
 
 ### Install BERTScore and ROUGE
@@ -68,3 +69,8 @@ alignscore 0.1.3 requires torch<2,>=1.12.1, but you have torch 2.5.1 which is in
 alignscore 0.1.3 requires transformers<5,>=4.20.1, but you have transformers 4.16.2 which is incompatible.
 tensorflow 2.18.0 requires numpy<2.1.0,>=1.26.0, but you have numpy 1.24.4 which is incompatible.
 tensorflow 2.18.0 requires protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<6.0.0dev,>=3.20.3, but you have protobuf 3.20.0 which is incompatible.
+
+## Concept Detection
+```sh
+pip install sklearn
+```
