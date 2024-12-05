@@ -1,37 +1,37 @@
-# setup 
+# Setup
 
-## caption prediction evaluation
+## Caption Prediction Evaluation
 
-### Create and activate conda environment
+### Create and Activate Conda Environment
 ```sh
 conda env update -f caption_prediction/caption.yml
 conda activate clef-caption
 ```
 
-### install BERTScore and ROUGE
+### Install BERTScore and ROUGE
 ```sh
 pip install rouge-score bert-score evaluate absl-py
 ```
 
-### install MEDCON
+### Install MEDCON
 ```sh
 git clone https://github.com/wyim/aci-bench.git
 cd aci-bench/resources
 ```
 
-Download https://download.nlm.nih.gov/umls/kss/2022AA/umls-2022AA-metathesaurus.zip into aci-bench/resources
+Download https://download.nlm.nih.gov/umls/kss/2022AA/umls-2022AA-metathesaurus.zip into aci-bench/resources or copy the files manually
 
 ```sh
 unzip umls-2022AA-metathesaurus.zip
 cp 2022AA/META/MRCONSO.RRF .
 cp 2022AA/META/MRSTY.RRF .
 cd ..
+```
+Install quickumls
+```sh
 pip install quickumls
 python3 -m quickumls.install resources/ resources/des
-```
-change version of spacy model from https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.5.0/en_core_web_md-3.5.0-py3-none-any.whl to https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.4.0/en_core_web_md-3.4.0-py3-none-any.whl in requirements
-
-```sh
+sed -i 's/3.5.0/3.4.0/g' requirements.txt
 pip install -r requirements.txt
 cd ..
 ```
