@@ -1,6 +1,14 @@
 import logging
 import os
 import sys
+import csv
+import string
+import warnings
+import numpy as np
+import re
+import evaluate
+from tqdm import tqdm
+from alignscore import AlignScore
 
 # Get the absolute path to the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,14 +39,6 @@ class StreamToLogger:
 sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
 sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
-import csv
-import string
-import warnings
-import numpy as np
-import re
-import evaluate
-from tqdm import tqdm
-from alignscore import AlignScore
 import base64
 import nltk
 nltk.download('punkt')
@@ -202,47 +202,33 @@ class CaptionEvaluator:
     def raise_exception(self, message, record_count, *args):
         raise Exception(
             message.format(*args)
-            + " Error occured at record line {}.".format(record_count)
+            + " Error occurred at record line {}.".format(record_count)
         )
+
+    def preprocess_caption(self, caption):
+        # Remove punctuation from string
+        translator = str.maketrans("", "", string.punctuation)
+        # Regex for numbers
+        number_regex = re.compile(r"\d+")
+        # Optional - Go to lowercase
+        if not type(self).case_sensitive:
+            caption = caption.lower()
+        # Replace numbers with the token 'number'
+        caption = number_regex.sub("number", caption)
+        # Remove punctuation using the translator
+        caption = caption.translate(translator)
+        return caption
 
     def compute_bertscore(self, candidate_pairs):
         print("BERTScore")
-        # Hide warnings
         warnings.filterwarnings("ignore")
-
-        # Remove punctuation from string
-        translator = str.maketrans("", "", string.punctuation)
-
-        # Regex for numbers
-        number_regex = re.compile(r"\d+")
-
         bert_scores = []
-
         for image_key in candidate_pairs:
-
-            # Get candidate and GT caption
-            candidate_caption = candidate_pairs[image_key]
-            gt_caption = self.gt[image_key]
-
-            # Optional - Go to lowercase
-            if not type(self).case_sensitive:
-                candidate_caption = candidate_caption.lower()
-                gt_caption = gt_caption.lower()
-
-            # replace numbers with the token 'number'
-            candidate_caption = number_regex.sub("number", candidate_caption)
-            gt_caption = number_regex.sub("number", gt_caption)
-
-            # Remove punctuation using the translator
-            candidate_caption = candidate_caption.translate(translator)
-            gt_caption = gt_caption.translate(translator)
-
-            # Calculate BERTScore for the current caption
+            candidate_caption = self.preprocess_caption(candidate_pairs[image_key])
+            gt_caption = self.preprocess_caption(self.gt[image_key])
             try:
-                # If both the GT and candidate are empty, assign a score of 1 for this caption
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     bert_score = 1
-                # Calculate the BERTScore
                 else:
                     bert_score = self.scorers["bert_scorer"][0].compute(
                         predictions=[candidate_caption],
@@ -250,52 +236,22 @@ class CaptionEvaluator:
                         model_type="microsoft/deberta-xlarge-mnli",
                         idf=True,
                     )
-            # Handle problematic cases where BERTScore calculation is impossible
             except Exception as e:
-                print(e)
-                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
+                logging.error(e)
+                bert_score = 0
             bert_scores.append(bert_score["recall"])
-
         return np.mean(bert_scores)
 
     def compute_rouge(self, candidate_pairs):
         print("ROUGE")
-        # Hide warnings
         warnings.filterwarnings("ignore")
-
-        # Remove punctuation from string
-        translator = str.maketrans("", "", string.punctuation)
-
-        # Regex for numbers
-        number_regex = re.compile(r"\d+")
-
         rouge_scores = []
-
         for image_key in candidate_pairs:
-
-            # Get candidate and GT caption
-            candidate_caption = candidate_pairs[image_key]
-            gt_caption = self.gt[image_key]
-
-            # Optional - Go to lowercase
-            if not type(self).case_sensitive:
-                candidate_caption = candidate_caption.lower()
-                gt_caption = gt_caption.lower()
-
-            # replace numbers with the token 'number'
-            candidate_caption = number_regex.sub("number", candidate_caption)
-            gt_caption = number_regex.sub("number", gt_caption)
-
-            # Remove punctuation using the translator
-            candidate_caption = candidate_caption.translate(translator)
-            gt_caption = gt_caption.translate(translator)
-
-            # Calculate ROUGE score for the current caption
+            candidate_caption = self.preprocess_caption(candidate_pairs[image_key])
+            gt_caption = self.preprocess_caption(self.gt[image_key])
             try:
-                # If both the GT and candidate are empty, assign a score of 1 for this caption
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     rouge1_score_f1 = 1
-                # Calculate the ROUGE score
                 else:
                     rouge1_score_f1 = self.scorers["rouge"][0].compute(
                         predictions=[candidate_caption],
@@ -303,154 +259,92 @@ class CaptionEvaluator:
                         use_aggregator=False,
                         use_stemmer=False,
                     )
-            # Handle problematic cases where ROUGE score calculation is impossible
             except Exception as e:
-                print(e)
-                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
-
-            # Append the score to the list of scores
+                logging.error(e)
+                rouge1_score_f1 = {"rouge1": 0}
             rouge_scores.append(rouge1_score_f1["rouge1"])
-
-        # Calculate the average of all scores
         return np.mean(rouge_scores)
 
     def compute_alignscore(self, candidate_pairs):
         print("Alignscore")
-        # Hide warnings
         warnings.filterwarnings("ignore")
-
         scorer = AlignScore(
             model="roberta-large",
             batch_size=32,
             device="cuda:0",
-            ckpt_path= os.path.join(current_dir,"..","models/AlignScore/AlignScore-base.ckpt"),
+            ckpt_path=os.path.join(current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"),
             evaluation_mode="nli_sp",
         )
         align_scores = []
-
         for image_key in candidate_pairs:
-
-            # Get candidate and GT caption
             candidate_caption = candidate_pairs[image_key]
             gt_caption = self.gt[image_key]
-
-            # Calculate Align score for the current caption
             try:
-                # If both the GT and candidate are empty, assign a score of 1 for this caption
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     score = 1
-                # Calculate the Align score
                 else:
-                    score = scorer.score(
-                        contexts=[gt_caption], claims=[candidate_caption]
-                    )
-
-            # Handle problematic cases where ROUGE score calculation is impossible
+                    score = scorer.score(contexts=[gt_caption], claims=[candidate_caption])
             except Exception as e:
-                print(e)
-                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
-
-            # Append the score to the list of scores
+                logging.error(e)
+                score = [0]
             align_scores.append(score[0])
-
         return np.mean(align_scores)
 
     def compute_medcon(self, candidate_pairs):
         print("MEDCON")
-        # Hide warnings
         warnings.filterwarnings("ignore")
-
         medcon_scores = []
-
         for image_key in candidate_pairs:
-
-            # Get candidate and GT caption
             candidate_caption = candidate_pairs[image_key]
             gt_caption = self.gt[image_key]
-
-            # Calculate Align score for the current caption
             try:
-                # If both the GT and candidate are empty, assign a score of 1 for this caption
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     score = 1
-                # Calculate the Align score
                 else:
                     score = umls_score_individual(gt_caption, candidate_caption)
-
-            # Handle problematic cases where ROUGE score calculation is impossible
             except Exception as e:
-                print(e)
-                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
-
-            # Append the score to the list of scores
+                logging.error(e)
+                score = 0
             medcon_scores.append(score)
-        return 0
+        return np.mean(medcon_scores)
 
     def compute_similarity(self, candidate_pairs):
         print("MedImageInsights Similarity")
-        # Hide warnings
         warnings.filterwarnings("ignore")
-
-        # Initialize classifier
         classifier = MedImageInsight(
-            model_dir= os.path.join(current_dir,"..","MedImageInsights/2024.09.27"),
+            model_dir=os.path.join(current_dir, "..", "MedImageInsights/2024.09.27"),
             vision_model_name="medimageinsigt-v1.0.0.pt",
             language_model_name="language_model.pth",
         )
-
-        # Load model
         classifier.load_model()
-
         def read_image(image_path):
             with open(image_path, "rb") as f:
                 return f.read()
-
         image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
-        # check if image path exists and throw error if not
         if not os.path.exists(image_dir):
             raise Exception("Image directory does not exist at {}".format(image_dir))
-
         sim_scores = []
-
+        images = {}
         for image_key in candidate_pairs:
-
-            # Get candidate and GT caption
+            if image_key not in images:
+                images[image_key] = base64.encodebytes(
+                    read_image(os.path.join(image_dir, image_key + ".jpg"))
+                ).decode("utf-8")
             candidate_caption = candidate_pairs[image_key]
             gt_caption = self.gt[image_key]
-
-            image = base64.encodebytes(
-                read_image(os.path.join(image_dir, image_key + ".jpg"))
-            ).decode("utf-8")
-            images = [image]
-            texts = [candidate_caption]
-
-            # Image embeddings
-            embeddings = classifier.encode(images=images, texts=texts)
-
-            # Text embeddings
-            v = embeddings["image_embeddings"][0]
-            c = embeddings["text_embeddings"][0]
-
-            # scaling factor
-            w = 2.5
-
-            # Compute the cosine similarity between the image vector v and the caption vector c using the formula:
-            # cos(c,v)=c⋅v/∥c∥∥v∥​ here ⋅ denotes the dot product and ∥⋅∥ denotes the Euclidean norm.
             try:
-                # If both the GT and candidate are empty, assign a score of 1 for this caption
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     score = 0
-                # Calculate the score
                 else:
+                    embeddings = classifier.encode(images=[images[image_key]], texts=[candidate_caption])
+                    v = embeddings["image_embeddings"][0]
+                    c = embeddings["text_embeddings"][0]
+                    w = 2.5
                     cos = np.dot(c, v) / (np.linalg.norm(c) * np.linalg.norm(v))
                     score = w * np.max([cos, 0])
-
-            # Handle problematic cases where score calculation is impossible
             except Exception as e:
-                print(e)
-                # raise Exception('Problem with {} {}', gt_caption, candidate_caption)
-
-            # Append the score to the list of scores
+                logging.error(e)
+                score = 0
             sim_scores.append(score)
         return np.mean(sim_scores)
 
