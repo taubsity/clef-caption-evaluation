@@ -113,8 +113,8 @@ class CaptionEvaluator:
         submission_file_path = client_payload["submission_file_path"]
         predictions = self.load_predictions(submission_file_path)
 
-        alignscore = self.compute_alignscore(predictions)
         bertscore = self.compute_bertscore(predictions)
+        alignscore = self.compute_alignscore(predictions)
         rouge = self.compute_rouge(predictions)
         sim = self.compute_similarity(predictions)
         medcon = self.compute_medcon(predictions)
@@ -196,7 +196,6 @@ class CaptionEvaluator:
         caption = number_regex.sub("number", caption)
         caption = caption.translate(translator)
         return caption
-
 
     def compute_bertscore(self, candidate_pairs):
         logging.info("Computing BERTScore")
