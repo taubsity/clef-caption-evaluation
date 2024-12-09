@@ -192,7 +192,7 @@ class CaptionEvaluator:
         references = [self.preprocess_caption(caption) for caption in self.gt.values()]
         self.scorers["bert_scorer"][0].compute_idf(references)
         idf_dict = self.scorers["bert_scorer"][0]._idf_dict
-        print(idf_dict)
+        logging.info(idf_dict)
         return idf_dict
 
     def compute_bertscore(self, candidate_pairs):
