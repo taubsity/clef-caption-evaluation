@@ -4,9 +4,12 @@ channels:
   - defaults
 dependencies:
   - python==3.10.12
+  - conda==23.5.2
   - pip
   - git-lfs
   - cxx-compiler
   - gcc
   - pybind11
   - nmslib
+  - leveldb
+  - libstdcxx-ng

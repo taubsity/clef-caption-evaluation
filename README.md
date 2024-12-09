@@ -70,6 +70,16 @@ alignscore 0.1.3 requires transformers<5,>=4.20.1, but you have transformers 4.1
 tensorflow 2.18.0 requires numpy<2.1.0,>=1.26.0, but you have numpy 1.24.4 which is incompatible.
 tensorflow 2.18.0 requires protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<6.0.0dev,>=3.20.3, but you have protobuf 3.20.0 which is incompatible.
 
+KITE:
+conda install -c conda-forge nmslib
+pip install numpy==1.26.4
+pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.1/en_ner_bc5cdr_md-0.5.1.tar.gz
+conda install -c conda-forge gcc_linux-64 gxx_linux-64
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+python -m spacy download en_core_web_sm
+
+Debugging:
+with torch.no_grad(): in line 188 medimageinsightmodel.py
 ## Concept Detection
 ```sh
 pip install sklearn

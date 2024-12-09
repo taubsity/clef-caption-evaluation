@@ -9,6 +9,8 @@ from alignscore import AlignScore
 import sys
 import base64
 import os
+import nltk
+nltk.download('punkt')
 
 # Get the absolute path to the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -74,11 +76,11 @@ class CaptionEvaluator:
         # Load predictions and validate format
         predictions = self.load_predictions(submission_file_path)
 
+        alignscore = self.compute_alignscore(predictions)
         bertscore = self.compute_bertscore(predictions)
         rouge = self.compute_rouge(predictions)
         sim = self.compute_similarity(predictions)
         medcon = self.compute_medcon(predictions)
-        alignscore = self.compute_alignscore(predictions)
 
         relevance = np.mean([bertscore, rouge, sim])
         factuality = np.mean([medcon, alignscore])
@@ -173,6 +175,7 @@ class CaptionEvaluator:
         )
 
     def compute_bertscore(self, candidate_pairs):
+        print("BERTScore")
         # Hide warnings
         warnings.filterwarnings("ignore")
 
@@ -225,6 +228,7 @@ class CaptionEvaluator:
         return np.mean(bert_scores)
 
     def compute_rouge(self, candidate_pairs):
+        print("ROUGE")
         # Hide warnings
         warnings.filterwarnings("ignore")
 
@@ -280,6 +284,7 @@ class CaptionEvaluator:
         return np.mean(rouge_scores)
 
     def compute_alignscore(self, candidate_pairs):
+        print("Alignscore")
         # Hide warnings
         warnings.filterwarnings("ignore")
 
@@ -287,7 +292,7 @@ class CaptionEvaluator:
             model="roberta-large",
             batch_size=32,
             device="cuda:0",
-            ckpt_path="models/AlignScore/AlignScore-large.ckpt",
+            ckpt_path= os.path.join(current_dir,"..","models/AlignScore/AlignScore-base.ckpt"),
             evaluation_mode="nli_sp",
         )
         align_scores = []
@@ -317,9 +322,10 @@ class CaptionEvaluator:
             # Append the score to the list of scores
             align_scores.append(score[0])
 
-        return np.means(align_scores)
+        return np.mean(align_scores)
 
     def compute_medcon(self, candidate_pairs):
+        print("MEDCON")
         # Hide warnings
         warnings.filterwarnings("ignore")
 
@@ -350,12 +356,13 @@ class CaptionEvaluator:
         return 0
 
     def compute_similarity(self, candidate_pairs):
+        print("MedImageInsights Similarity")
         # Hide warnings
         warnings.filterwarnings("ignore")
 
         # Initialize classifier
         classifier = MedImageInsight(
-            model_dir="MedImageInsights/2024.09.27",
+            model_dir= os.path.join(current_dir,"..","MedImageInsights/2024.09.27"),
             vision_model_name="medimageinsigt-v1.0.0.pt",
             language_model_name="language_model.pth",
         )
@@ -420,11 +427,11 @@ class CaptionEvaluator:
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
     ground_truth_path = (
-        "/home/tabea/projects/clef-caption-evaluation/data/valid/captions.csv"
+         os.path.join(current_dir,"..","data/valid/captions.csv")
     )
 
     submission_file_path = (
-        "/home/tabea/projects/clef-caption-evaluation/data/valid/captions.csv"
+         os.path.join(current_dir,"..","data/valid/captions.csv")
     )
 
     _client_payload = {}
