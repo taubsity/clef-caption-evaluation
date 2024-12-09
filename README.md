@@ -80,6 +80,7 @@ python -m spacy download en_core_web_sm
 
 Debugging:
 with torch.no_grad(): in line 188 medimageinsightmodel.py
+
 ## Concept Detection
 ```sh
 pip install sklearn

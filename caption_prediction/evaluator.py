@@ -11,7 +11,6 @@ from alignscore import AlignScore
 from bert_score import BERTScorer
 import base64
 
-# Get the absolute path to the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 logging.basicConfig(
@@ -22,7 +21,6 @@ logging.basicConfig(
 )
 
 
-# Redirect stdout and stderr to the logger
 class StreamToLogger:
     def __init__(self, logger, log_level):
         self.logger = logger
@@ -37,7 +35,7 @@ class StreamToLogger:
         pass
 
 
-sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
+# sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
 sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -58,14 +56,11 @@ if not os.path.exists(med_image_insights_dir):
         "MedImageInsights directory not found at {}".format(med_image_insights_dir)
     )
 
-# Add these directories to sys.path
 sys.path.insert(0, aci_bench_evaluation_dir)
 sys.path.insert(0, med_image_insights_dir)
 
-print("Import MEDCON")
 from UMLS_evaluation import umls_score_individual
 
-print("Import MedImageInsight")
 from medimageinsightmodel import MedImageInsight
 
 
@@ -201,8 +196,8 @@ class CaptionEvaluator:
         bert_scores = [
             (
                 self.bert_scorer.score(
-                    predictions=[self.preprocess_caption(candidate_pairs[image_key])],
-                    references=[self.preprocess_caption(self.gt[image_key])],
+                    cands=[self.preprocess_caption(candidate_pairs[image_key])],
+                    refs=[self.preprocess_caption(self.gt[image_key])],
                 )[2].item()
                 if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
                 else 1
