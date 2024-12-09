@@ -10,7 +10,9 @@ import sys
 import base64
 import os
 import nltk
+import logging
 nltk.download('punkt')
+
 
 # Get the absolute path to the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +40,31 @@ sys.path.insert(0, med_image_insights_dir)
 from UMLS_evaluation import umls_score_individual
 from medimageinsightmodel import MedImageInsight
 
+logging.basicConfig(
+    filename=os.path.join(current_dir, "log.log"),
+    level=logging.INFO,
+    format="%(asctime)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+# Redirect stdout and stderr to the logger
+class StreamToLogger:
+    def __init__(self, logger, log_level):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ""
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.log_level, line.rstrip())
+
+    def flush(self):
+        pass
+
+
+sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
+sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
 # IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
