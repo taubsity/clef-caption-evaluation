@@ -88,7 +88,6 @@ class CaptionEvaluator:
             model_type="microsoft/deberta-xlarge-mnli",
             idf=True,
             idf_sents=idf_sentences,
-            verbose=True,
         )
         logging.info("Loading AlignScore")
         self.align_scorer = AlignScore(
