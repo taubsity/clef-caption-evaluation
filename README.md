@@ -14,6 +14,12 @@ conda activate env/clef-caption
 pip install rouge-score bert-score evaluate absl-py
 ```
 
+### Install BLEURT
+```sh
+git clone https://github.com/google-research/bleurt.git
+cd bleurt
+pip install .
+```
 ### Install MEDCON
 ```sh
 git clone https://github.com/wyim/aci-bench.git

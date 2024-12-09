@@ -74,6 +74,7 @@ class CaptionEvaluator:
         logging.info("Loading ROUGE from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
+            "bleurt": (evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20"),),
         }
         idf_sentences = [
             self.preprocess_caption(caption) for caption in self.gt.values()
@@ -111,6 +112,7 @@ class CaptionEvaluator:
         alignscore = self.compute_alignscore(predictions)
         rouge = self.compute_rouge(predictions)
         sim = self.compute_similarity(predictions)
+        bleurt = self.compute_bleurt(predictions)
         medcon = self.compute_medcon(predictions)
 
         relevance = np.mean([bertscore, rouge, sim])
@@ -122,6 +124,7 @@ class CaptionEvaluator:
             "bert": bertscore,
             "rouge": rouge,
             "similarity": sim,
+            "bleurt": bleurt,
             "medcon": medcon,
             "align": alignscore,
         }
@@ -222,6 +225,21 @@ class CaptionEvaluator:
             for image_key in candidate_pairs
         ]
         return np.mean(rouge_scores)
+    
+    def compute_bleurt(self, candidate_pairs):
+        logging.info("Computing BLEURT")
+        bleurt_scores = [
+            (
+                self.scorers["bleurt"][0].compute(
+                    predictions=[self.preprocess_caption(candidate_pairs[image_key])],
+                    references=[self.preprocess_caption(self.gt[image_key])],
+                )["scores"]
+                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+                else 1
+            )
+            for image_key in candidate_pairs
+        ]
+        return np.mean(bleurt_scores)
 
     def compute_alignscore(self, candidate_pairs):
         logging.info("Computing Alignscore")
