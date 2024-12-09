@@ -3,6 +3,10 @@ mkdir env
 conda env update -f caption_prediction/caption.yml --prefix env/clef-caption
 conda activate env/clef-caption
 pip install rouge-score bert-score evaluate absl-py
+# git clone https://github.com/google-research/bleurt.git
+cd bleurt
+pip install .
+cd ..
 #git clone https://github.com/wyim/aci-bench.git
 cd aci-bench
 # copy rff files

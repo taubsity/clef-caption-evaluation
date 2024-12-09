@@ -20,6 +20,13 @@ git clone https://github.com/google-research/bleurt.git
 cd bleurt
 pip install .
 ```
+
+### Install MedCAT
+```sh
+pip install medcat
+```
+You need to request a licence for UMLS to use MedCAT. Download UMLS full model into models/MedCAT.
+
 ### Install MEDCON
 ```sh
 git clone https://github.com/wyim/aci-bench.git

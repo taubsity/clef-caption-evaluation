@@ -9,6 +9,7 @@ import evaluate
 from tqdm import tqdm
 from alignscore import AlignScore
 from bert_score import BERTScorer
+from medcat_scorer import MedCatScorer
 import base64
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -71,10 +72,12 @@ class CaptionEvaluator:
     def __init__(self, ground_truth_path, **kwargs):
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()
-        logging.info("Loading ROUGE from HuggingFace")
+        logging.info("Loading ROUGE and BLEURT from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
-            "bleurt": (evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20"),),
+            "bleurt": (
+                evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20"),
+            ),
         }
         idf_sentences = [
             self.preprocess_caption(caption) for caption in self.gt.values()
@@ -85,6 +88,12 @@ class CaptionEvaluator:
             idf=True,
             idf_sents=idf_sentences,
         )
+        logging.info("Loading MedCatScorer")
+        self.medcat_scorer = MedCatScorer(
+            model_path=os.path.join(
+                current_dir, "..", "models/MedCAT/medcat_models_clinical_notes_0.2.6"
+            )
+        )
         logging.info("Loading AlignScore")
         self.align_scorer = AlignScore(
             model="roberta-large",
@@ -94,6 +103,7 @@ class CaptionEvaluator:
                 current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"
             ),
             evaluation_mode="nli_sp",
+            verbose=False,
         )
         logging.info("Loading MedImageInsight")
         self.image_similarity_scorer = MedImageInsight(
@@ -225,7 +235,7 @@ class CaptionEvaluator:
             for image_key in candidate_pairs
         ]
         return np.mean(rouge_scores)
-    
+
     def compute_bleurt(self, candidate_pairs):
         logging.info("Computing BLEURT")
         bleurt_scores = [
@@ -254,6 +264,18 @@ class CaptionEvaluator:
             for image_key in candidate_pairs
         ]
         return np.mean(align_scores)
+
+    def compute_medcats(self, candidate_pairs):
+        logging.info("Computing MEDCATS")
+        medcat_scores = [
+            (
+                self.medcat_scorer.score(self.gt[image_key], candidate_pairs[image_key], False)
+                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+                else 1
+            )
+            for image_key in candidate_pairs
+        ]
+        return np.mean(medcat_scores)
 
     def compute_medcon(self, candidate_pairs):
         logging.info("Computing MEDCON")
