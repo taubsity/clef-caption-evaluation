@@ -8,6 +8,7 @@ import re
 import evaluate
 from tqdm import tqdm
 from alignscore import AlignScore
+from bert_score import BERTScorer
 import base64
 
 # Get the absolute path to the current directory
@@ -75,11 +76,20 @@ class CaptionEvaluator:
     def __init__(self, ground_truth_path, **kwargs):
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()
-        logging.info("Loading ROUGE and BERTScore from HuggingFace")
+        logging.info("Loading ROUGE from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
-            "bert_scorer": (evaluate.load("bertscore"),),
         }
+        idf_sentences = [
+            self.preprocess_caption(caption) for caption in self.gt.values()
+        ]
+        logging.info("Loading BERTScore")
+        self.bert_scorer = BERTScorer(
+            model_type="microsoft/deberta-xlarge-mnli",
+            idf=True,
+            idf_sents=idf_sentences,
+            verbose=True,
+        )
         logging.info("Loading AlignScore")
         self.align_scorer = AlignScore(
             model="roberta-large",
@@ -187,25 +197,15 @@ class CaptionEvaluator:
         caption = caption.translate(translator)
         return caption
 
-    def precompute_idf(self):
-        logging.info("Precomputing IDF dictionary")
-        references = [self.preprocess_caption(caption) for caption in self.gt.values()]
-        self.scorers["bert_scorer"][0].compute_idf(references)
-        idf_dict = self.scorers["bert_scorer"][0]._idf_dict
-        logging.info(idf_dict)
-        return idf_dict
 
     def compute_bertscore(self, candidate_pairs):
         logging.info("Computing BERTScore")
-        idf_dict = self.precompute_idf()
         bert_scores = [
             (
-                self.scorers["bert_scorer"][0].compute(
+                self.bert_scorer.score(
                     predictions=[self.preprocess_caption(candidate_pairs[image_key])],
                     references=[self.preprocess_caption(self.gt[image_key])],
-                    model_type="microsoft/deberta-xlarge-mnli",
-                    idf=idf_dict,
-                )["recall"]
+                )[2].item()
                 if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
                 else 1
             )
