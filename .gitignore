@@ -4,3 +4,5 @@ aci-bench
 data
 MedImageInsights
 env
+.vscode
+caption_prediction/*.log

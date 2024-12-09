@@ -1,44 +1,9 @@
-import csv
-import string
-import warnings
-import numpy as np
-import re
-import evaluate
-from tqdm import tqdm
-from alignscore import AlignScore
-import sys
-import base64
-import os
-import nltk
 import logging
-nltk.download('punkt')
-
+import os
+import sys
 
 # Get the absolute path to the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Construct paths to the module directories
-aci_bench_evaluation_dir = os.path.join(current_dir, "..", "aci-bench", "evaluation")
-med_image_insights_dir = os.path.join(current_dir, "..", "MedImageInsights")
-
-# check if the directories exist
-if not os.path.exists(aci_bench_evaluation_dir):
-    raise Exception(
-        "aci-bench/evaluation directory not found at {}".format(
-            aci_bench_evaluation_dir
-        )
-    )
-if not os.path.exists(med_image_insights_dir):
-    raise Exception(
-        "MedImageInsights directory not found at {}".format(med_image_insights_dir)
-    )
-
-# Add these directories to sys.path
-sys.path.insert(0, aci_bench_evaluation_dir)
-sys.path.insert(0, med_image_insights_dir)
-
-from UMLS_evaluation import umls_score_individual
-from medimageinsightmodel import MedImageInsight
 
 logging.basicConfig(
     filename=os.path.join(current_dir, "log.log"),
@@ -65,6 +30,45 @@ class StreamToLogger:
 
 sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
 sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
+
+import csv
+import string
+import warnings
+import numpy as np
+import re
+import evaluate
+from tqdm import tqdm
+from alignscore import AlignScore
+import base64
+import nltk
+nltk.download('punkt')
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Construct paths to the module directories
+aci_bench_evaluation_dir = os.path.join(current_dir, "..", "aci-bench", "evaluation")
+med_image_insights_dir = os.path.join(current_dir, "..", "MedImageInsights")
+
+# check if the directories exist
+if not os.path.exists(aci_bench_evaluation_dir):
+    raise Exception(
+        "aci-bench/evaluation directory not found at {}".format(
+            aci_bench_evaluation_dir
+        )
+    )
+if not os.path.exists(med_image_insights_dir):
+    raise Exception(
+        "MedImageInsights directory not found at {}".format(med_image_insights_dir)
+    )
+
+# Add these directories to sys.path
+sys.path.insert(0, aci_bench_evaluation_dir)
+sys.path.insert(0, med_image_insights_dir)
+
+print("Import MEDCON")
+from UMLS_evaluation import umls_score_individual
+print("Import MedImageInsight")
+from medimageinsightmodel import MedImageInsight
 
 # IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
