@@ -3,12 +3,12 @@ import os
 import sys
 import csv
 import string
-import warnings
 import numpy as np
 import re
 import evaluate
 from tqdm import tqdm
 from alignscore import AlignScore
+import base64
 
 # Get the absolute path to the current directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,11 +39,6 @@ class StreamToLogger:
 sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
 sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
-import base64
-import nltk
-
-nltk.download("punkt")
-
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Construct paths to the module directories
@@ -73,41 +68,39 @@ print("Import MedImageInsight")
 from medimageinsightmodel import MedImageInsight
 
 
-# IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
 
     case_sensitive = False
 
     def __init__(self, ground_truth_path, **kwargs):
-        """
-        This is the evaluator class which will be used for the evaluation.
-        Please note that the class name should be `CaptionEvaluator`
-        `ground_truth` : Holds the path for the ground truth which is used to score the submissions.
-        """
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()
-
-        ######## Load Metrics from HuggingFace ########
-        print("Loading ROUGE and BERTScore from HuggingFace")
+        logging.info("Loading ROUGE and BERTScore from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
             "bert_scorer": (evaluate.load("bertscore"),),
         }
+        logging.info("Loading AlignScore")
+        self.align_scorer = AlignScore(
+            model="roberta-large",
+            batch_size=32,
+            device="cuda:0",
+            ckpt_path=os.path.join(
+                current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"
+            ),
+            evaluation_mode="nli_sp",
+        )
+        logging.info("Loading MedImageInsight")
+        self.image_similarity_scorer = MedImageInsight(
+            model_dir=os.path.join(current_dir, "..", "MedImageInsights/2024.09.27"),
+            vision_model_name="medimageinsigt-v1.0.0.pt",
+            language_model_name="language_model.pth",
+        )
+        self.image_similarity_scorer.load_model()
 
     def _evaluate(self, client_payload, _context={}):
-        # """
-        # This is the only method that will be called by the framework
-        # returns a _result_object that can contain up to 2 different scores
-        # `client_payload["submission_file_path"]` will hold the path of the submission file
-        # """
-        """
-        This method that will be called by the framework returns a _result_object that can contains
-        different scores. `client_payload["submission_file_path"]` will hold the path of the submission file.
-        """
-        print("evaluate...")
-        # Load submission file path
+        logging.info("Evaluating...")
         submission_file_path = client_payload["submission_file_path"]
-        # Load predictions and validate format
         predictions = self.load_predictions(submission_file_path)
 
         alignscore = self.compute_alignscore(predictions)
@@ -135,43 +128,28 @@ class CaptionEvaluator:
         return _result_object
 
     def load_gt(self):
-        """
-        Load and return groundtruth data
-        """
-        print("loading ground truth...")
-
+        logging.info("Loading ground truth...")
         pairs = {}
         with open(self.ground_truth_path) as csvfile:
             reader = csv.reader(csvfile)
-
             for row in tqdm(reader):
                 pairs[row[0]] = row[1]
         return pairs
 
     def load_predictions(self, submission_file_path):
-        """
-        Load and return a predictions object (dictionary) that contains the submitted data that will be used in the _evaluate method
-        Validation of the runfile format has to be handled here. simply throw an Exception if there is a validation error.
-        """
-        print("load predictions...")
-
+        logging.info("Loading predictions...")
         pairs = {}
         image_ids_gt = set(self.gt.keys())
-        occured_images = []
-        lineCnt = 0
+        occured_images = set()
         with open(submission_file_path) as csvfile:
             reader = csv.reader(csvfile)
-
-            for row in tqdm(reader):
-                # less than two pipe separated tokens on line => Error
+            for lineCnt, row in enumerate(tqdm(reader)):
                 if len(row) < 2:
                     self.raise_exception(
                         "Wrong format: Each line must consist of an image ID followed by a ',' (comma) and a caption ({}).",
                         lineCnt,
                         "<imageID><comma><caption>",
                     )
-
-                # Image ID does not exist in testset => Error
                 image_id = row[0]
                 if image_id not in image_ids_gt:
                     self.raise_exception(
@@ -179,27 +157,19 @@ class CaptionEvaluator:
                         lineCnt,
                         image_id,
                     )
-
-                # image id occured at least twice in file => Error
                 if image_id in occured_images:
                     self.raise_exception(
                         "Image ID '{}' was specified more than once in submission file.",
                         lineCnt,
                         image_id,
                     )
-
-                pairs[row[0]] = row[1]
-
-                occured_images.append(image_id)
-                lineCnt += 1
-
-        # In case not all images from the testset are contained in the file => Error
+                pairs[image_id] = row[1]
+                occured_images.add(image_id)
         if len(occured_images) != len(image_ids_gt):
             self.raise_exception(
                 f"Number of image IDs in submission file not equal to number of image IDs in testset.\nNumber in testset: {len(image_ids_gt)}\nNumber in submission: {len(occured_images)}",
                 lineCnt,
             )
-
         return pairs
 
     def raise_exception(self, message, record_count, *args):
@@ -209,98 +179,95 @@ class CaptionEvaluator:
         )
 
     def preprocess_caption(self, caption):
-        # Remove punctuation from string
         translator = str.maketrans("", "", string.punctuation)
-        # Regex for numbers
         number_regex = re.compile(r"\d+")
-        # Optional - Go to lowercase
         if not type(self).case_sensitive:
             caption = caption.lower()
-        # Replace numbers with the token 'number'
         caption = number_regex.sub("number", caption)
-        # Remove punctuation using the translator
         caption = caption.translate(translator)
         return caption
 
+    def precompute_idf(self):
+        logging.info("Precomputing IDF dictionary")
+        references = [self.preprocess_caption(caption) for caption in self.gt.values()]
+        self.scorers["bert_scorer"][0].compute_idf(references)
+        idf_dict = self.scorers["bert_scorer"][0]._idf_dict
+        print(idf_dict)
+        return idf_dict
+
     def compute_bertscore(self, candidate_pairs):
-        print("BERTScore")
-        warnings.filterwarnings("ignore")
-        bert_scores = []
-        for image_key in candidate_pairs:
-            candidate_caption = self.preprocess_caption(candidate_pairs[image_key])
-            gt_caption = self.preprocess_caption(self.gt[image_key])
-            try:
-                if len(gt_caption) == 0 and len(candidate_caption) == 0:
-                    bert_score = 1
-                else:
-                    bert_score = self.scorers["bert_scorer"][0].compute(
-                        predictions=[candidate_caption],
-                        references=[gt_caption],
-                        model_type="microsoft/deberta-xlarge-mnli",
-                        idf=True,
-                    )
-            except Exception as e:
-                logging.error(e)
-                bert_score = 0
-            bert_scores.append(bert_score["recall"])
+        logging.info("Computing BERTScore")
+        idf_dict = self.precompute_idf()
+        bert_scores = [
+            (
+                self.scorers["bert_scorer"][0].compute(
+                    predictions=[self.preprocess_caption(candidate_pairs[image_key])],
+                    references=[self.preprocess_caption(self.gt[image_key])],
+                    model_type="microsoft/deberta-xlarge-mnli",
+                    idf=idf_dict,
+                )["recall"]
+                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+                else 1
+            )
+            for image_key in candidate_pairs
+        ]
         return np.mean(bert_scores)
 
     def compute_rouge(self, candidate_pairs):
-        print("ROUGE")
-        warnings.filterwarnings("ignore")
-        rouge_scores = []
-        for image_key in candidate_pairs:
-            candidate_caption = self.preprocess_caption(candidate_pairs[image_key])
-            gt_caption = self.preprocess_caption(self.gt[image_key])
-            try:
-                if len(gt_caption) == 0 and len(candidate_caption) == 0:
-                    rouge1_score_f1 = 1
-                else:
-                    rouge1_score_f1 = self.scorers["rouge"][0].compute(
-                        predictions=[candidate_caption],
-                        references=[gt_caption],
-                        use_aggregator=False,
-                        use_stemmer=False,
-                    )
-            except Exception as e:
-                logging.error(e)
-                rouge1_score_f1 = {"rouge1": 0}
-            rouge_scores.append(rouge1_score_f1["rouge1"])
+        logging.info("Computing ROUGE")
+        rouge_scores = [
+            (
+                self.scorers["rouge"][0].compute(
+                    predictions=[self.preprocess_caption(candidate_pairs[image_key])],
+                    references=[self.preprocess_caption(self.gt[image_key])],
+                    use_aggregator=False,
+                    use_stemmer=False,
+                )["rouge1"]
+                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+                else 1
+            )
+            for image_key in candidate_pairs
+        ]
         return np.mean(rouge_scores)
 
     def compute_alignscore(self, candidate_pairs):
-        print("Alignscore")
-        warnings.filterwarnings("ignore")
-        scorer = AlignScore(
-            model="roberta-large",
-            batch_size=32,
-            device="cuda:0",
-            ckpt_path=os.path.join(
-                current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"
-            ),
-            evaluation_mode="nli_sp",
-        )
-        align_scores = []
-        for image_key in candidate_pairs:
-            candidate_caption = candidate_pairs[image_key]
-            gt_caption = self.gt[image_key]
-            try:
-                if len(gt_caption) == 0 and len(candidate_caption) == 0:
-                    score = 1
-                else:
-                    score = scorer.score(
-                        contexts=[gt_caption], claims=[candidate_caption]
-                    )
-            except Exception as e:
-                logging.error(e)
-                score = [0]
-            align_scores.append(score[0])
+        logging.info("Computing Alignscore")
+        align_scores = [
+            (
+                self.align_scorer.score(
+                    contexts=[self.gt[image_key]], claims=[candidate_pairs[image_key]]
+                )[0]
+                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+                else 1
+            )
+            for image_key in candidate_pairs
+        ]
         return np.mean(align_scores)
 
     def compute_medcon(self, candidate_pairs):
-        print("MEDCON")
-        warnings.filterwarnings("ignore")
-        medcon_scores = []
+        logging.info("Computing MEDCON")
+        medcon_scores = [
+            (
+                umls_score_individual(self.gt[image_key], candidate_pairs[image_key])
+                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+                else 1
+            )
+            for image_key in candidate_pairs
+        ]
+        return np.mean(medcon_scores)
+
+    def compute_similarity(self, candidate_pairs):
+        logging.info("Computing MedImageInsights Similarity")
+        image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
+        if not os.path.exists(image_dir):
+            raise Exception("Image directory does not exist at {}".format(image_dir))
+        images = {
+            image_key: base64.encodebytes(
+                open(os.path.join(image_dir, image_key + ".jpg"), "rb").read()
+            ).decode("utf-8")
+            for image_key in candidate_pairs
+        }
+        sim_scores = []
         for image_key in candidate_pairs:
             candidate_caption = candidate_pairs[image_key]
             gt_caption = self.gt[image_key]
@@ -308,44 +275,7 @@ class CaptionEvaluator:
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     score = 1
                 else:
-                    score = umls_score_individual(gt_caption, candidate_caption)
-            except Exception as e:
-                logging.error(e)
-                score = 0
-            medcon_scores.append(score)
-        return np.mean(medcon_scores)
-
-    def compute_similarity(self, candidate_pairs):
-        print("MedImageInsights Similarity")
-        warnings.filterwarnings("ignore")
-        classifier = MedImageInsight(
-            model_dir=os.path.join(current_dir, "..", "MedImageInsights/2024.09.27"),
-            vision_model_name="medimageinsigt-v1.0.0.pt",
-            language_model_name="language_model.pth",
-        )
-        classifier.load_model()
-
-        def read_image(image_path):
-            with open(image_path, "rb") as f:
-                return f.read()
-
-        image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
-        if not os.path.exists(image_dir):
-            raise Exception("Image directory does not exist at {}".format(image_dir))
-        sim_scores = []
-        images = {}
-        for image_key in candidate_pairs:
-            if image_key not in images:
-                images[image_key] = base64.encodebytes(
-                    read_image(os.path.join(image_dir, image_key + ".jpg"))
-                ).decode("utf-8")
-            candidate_caption = candidate_pairs[image_key]
-            gt_caption = self.gt[image_key]
-            try:
-                if len(gt_caption) == 0 and len(candidate_caption) == 0:
-                    score = 0
-                else:
-                    embeddings = classifier.encode(
+                    embeddings = self.image_similarity_scorer.encode(
                         images=[images[image_key]], texts=[candidate_caption]
                     )
                     v = embeddings["image_embeddings"][0]
@@ -355,26 +285,16 @@ class CaptionEvaluator:
                     score = w * np.max([cos, 0])
             except Exception as e:
                 logging.error(e)
-                score = 0
+                score = 1
             sim_scores.append(score)
         return np.mean(sim_scores)
 
 
-# TEST THIS EVALUATOR
 if __name__ == "__main__":
     ground_truth_path = os.path.join(current_dir, "..", "data/valid/captions.csv")
-
     submission_file_path = os.path.join(current_dir, "..", "data/valid/captions.csv")
-
-    _client_payload = {}
-    _client_payload["submission_file_path"] = submission_file_path
-
-    # Instantiate a dummy context
+    _client_payload = {"submission_file_path": submission_file_path}
     _context = {}
-
-    # Instantiate an evaluator
     caption_evaluator = CaptionEvaluator(ground_truth_path)
-
-    # Evaluate
     result = caption_evaluator._evaluate(_client_payload, _context)
     print(result)
