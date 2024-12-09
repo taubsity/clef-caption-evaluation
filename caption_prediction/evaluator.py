@@ -41,7 +41,8 @@ sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
 import base64
 import nltk
-nltk.download('punkt')
+
+nltk.download("punkt")
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -67,8 +68,10 @@ sys.path.insert(0, med_image_insights_dir)
 
 print("Import MEDCON")
 from UMLS_evaluation import umls_score_individual
+
 print("Import MedImageInsight")
 from medimageinsightmodel import MedImageInsight
+
 
 # IMAGECLEF 2025 CAPTION - CAPTION PREDICTION
 class CaptionEvaluator:
@@ -272,7 +275,9 @@ class CaptionEvaluator:
             model="roberta-large",
             batch_size=32,
             device="cuda:0",
-            ckpt_path=os.path.join(current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"),
+            ckpt_path=os.path.join(
+                current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"
+            ),
             evaluation_mode="nli_sp",
         )
         align_scores = []
@@ -283,7 +288,9 @@ class CaptionEvaluator:
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     score = 1
                 else:
-                    score = scorer.score(contexts=[gt_caption], claims=[candidate_caption])
+                    score = scorer.score(
+                        contexts=[gt_caption], claims=[candidate_caption]
+                    )
             except Exception as e:
                 logging.error(e)
                 score = [0]
@@ -317,9 +324,11 @@ class CaptionEvaluator:
             language_model_name="language_model.pth",
         )
         classifier.load_model()
+
         def read_image(image_path):
             with open(image_path, "rb") as f:
                 return f.read()
+
         image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
         if not os.path.exists(image_dir):
             raise Exception("Image directory does not exist at {}".format(image_dir))
@@ -336,7 +345,9 @@ class CaptionEvaluator:
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
                     score = 0
                 else:
-                    embeddings = classifier.encode(images=[images[image_key]], texts=[candidate_caption])
+                    embeddings = classifier.encode(
+                        images=[images[image_key]], texts=[candidate_caption]
+                    )
                     v = embeddings["image_embeddings"][0]
                     c = embeddings["text_embeddings"][0]
                     w = 2.5
@@ -351,13 +362,9 @@ class CaptionEvaluator:
 
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
-    ground_truth_path = (
-         os.path.join(current_dir,"..","data/valid/captions.csv")
-    )
+    ground_truth_path = os.path.join(current_dir, "..", "data/valid/captions.csv")
 
-    submission_file_path = (
-         os.path.join(current_dir,"..","data/valid/captions.csv")
-    )
+    submission_file_path = os.path.join(current_dir, "..", "data/valid/captions.csv")
 
     _client_payload = {}
     _client_payload["submission_file_path"] = submission_file_path
