@@ -118,12 +118,20 @@ class CaptionEvaluator:
         submission_file_path = client_payload["submission_file_path"]
         predictions = self.load_predictions(submission_file_path)
 
+        medcats = self.compute_medcats(predictions)
+        print("Medcats:", medcats)
         bertscore = self.compute_bertscore(predictions)
+        print("BERTScore:", bertscore)
         alignscore = self.compute_alignscore(predictions)
+        print("AlignScore:", alignscore)
         rouge = self.compute_rouge(predictions)
+        print("ROUGE:", rouge)
         sim = self.compute_similarity(predictions)
+        print("Similarity:", sim)
         bleurt = self.compute_bleurt(predictions)
+        print("BLEURT:", bleurt)
         medcon = self.compute_medcon(predictions)
+        print("MEDCON:", medcon)
 
         relevance = np.mean([bertscore, rouge, sim])
         factuality = np.mean([medcon, alignscore])
@@ -136,6 +144,7 @@ class CaptionEvaluator:
             "similarity": sim,
             "bleurt": bleurt,
             "medcon": medcon,
+            "medcat": medcats,
             "align": alignscore,
         }
 
