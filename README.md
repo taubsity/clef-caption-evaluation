@@ -2,6 +2,10 @@
 
 Copy data/valid/captions.csv and data/valid/images into caption_prediction and concept_detection
 
+## Caption Prediction Evaluation
+
+You need to request a licence for UMLS to use caption prediction evaluation. Download UMLS full model (zip file) into caption_prediction/models/MedCAT.
+
 .
 ├── README.md
 ├── caption_prediction
@@ -24,7 +28,3 @@ Copy data/valid/captions.csv and data/valid/images into caption_prediction and c
     │       └── images
     ├── evaluator.py
     └── requirements.txt
-
-## Caption Prediction Evaluation
-
-You need to request a licence for UMLS to use caption prediction evaluation. Download UMLS full model (zip file) into caption_prediction/models/MedCAT.
