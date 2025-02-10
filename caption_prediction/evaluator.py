@@ -51,6 +51,7 @@ sys.path.insert(0, med_image_insights_dir)
 
 from medimageinsightmodel import MedImageInsight
 
+
 class CaptionEvaluator:
 
     case_sensitive = False
@@ -77,7 +78,12 @@ class CaptionEvaluator:
         logging.info("Loading MedCatScorer")
         self.medcat_scorer = MedCatScorer(
             model_path=os.path.join(
-                current_dir, "models/MedCAT/medcat_models_clinical_notes_0.2.6"
+                current_dir,
+                [
+                    os.path.join("models/MedCAT", filename)
+                    for filename in os.listdir("models/MedCAT")
+                    if filename.endswith(".zip")
+                ][0],
             )
         )
         logging.info("Loading AlignScore")
@@ -264,7 +270,9 @@ class CaptionEvaluator:
         logging.info("Computing MEDCATS")
         medcat_scores = [
             (
-                self.medcat_scorer.score(self.gt[image_key], candidate_pairs[image_key], False)
+                self.medcat_scorer.score(
+                    self.gt[image_key], candidate_pairs[image_key], False
+                )
                 if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
                 else 1
             )
@@ -308,7 +316,9 @@ class CaptionEvaluator:
 
 if __name__ == "__main__":
     ground_truth_path = os.path.join(current_dir, "data/valid/captions.csv")
-    submission_file_path = os.path.join(current_dir, "data/valid/captions.csv") # change this to the path of the submission file
+    submission_file_path = os.path.join(
+        current_dir, "data/valid/captions.csv"
+    )  # change this to the path of the submission file
     _client_payload = {"submission_file_path": submission_file_path}
     _context = {}
     caption_evaluator = CaptionEvaluator(ground_truth_path)

@@ -7,3 +7,6 @@ env
 .vscode
 caption_prediction/*.log
 bleurt
+caption_prediction/data
+caption_prediction/models
+concept_detection/data

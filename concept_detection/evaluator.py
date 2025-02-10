@@ -7,17 +7,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # IMAGECLEF 2025 CAPTION - CONCEPT DETECTION
 class ConceptEvaluator:
 
-    def __init__(self, ground_truth_path, ground_truth_secondary, **kwargs):
+    def __init__(self, ground_truth_path, **kwargs):
         """
         This is the evaluator class which will be used for the evaluation.
         Please note that the class name should be `ConceptEvaluator`
         `ground_truth` : Holds the path for the ground truth which is used to score the submissions.
         """
         self.ground_truth_path = ground_truth_path
-        self.ground_truth_secondary = ground_truth_secondary
         # Ground truth dict => gt[image_id] = tuple of concepts
         self.gt = self.load_gt(self.ground_truth_path)
-        self.gt_secondary = self.load_gt(self.ground_truth_secondary)
 
     def _evaluate(self, client_payload, _context={}):
         """

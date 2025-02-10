@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     unzip \
+    git-lfs \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file and install dependencies
@@ -40,17 +41,15 @@ RUN git lfs install && \
     cd MedImageInsights && pip install -r requirements.txt && cd ..
 
 # Copy the evaluation script
-COPY caption_prediction/evaluator.py .
-COPY caption_prediction/medcat_scorer.py .
+COPY evaluator.py .
+COPY medcat_scorer.py .
 
 # Copy model directories (assuming they are available locally)
 COPY models/MedCAT models/MedCAT
-COPY models/AlignScore models/AlignScore
-COPY MedImageInsights MedImageInsights
 
 # Copy data files (ground truth)
 COPY data/valid/captions.csv data/valid/captions.csv
-COPY data/valid/images/ data/valid/images/
+COPY data/valid/images data/valid/images
 
 # Run the container with a test submission file to verify everything loads correctly
 CMD ["python", "-c", "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); print('Evaluator initialized')"]

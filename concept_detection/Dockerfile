@@ -22,7 +22,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the evaluation script
-COPY caption_detection/evaluator.py .
+COPY evaluator.py .
 
 # Copy data files (ground truth)
 COPY data/valid/captions.csv data/valid/captions.csv
