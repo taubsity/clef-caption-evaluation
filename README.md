@@ -1,67 +1,30 @@
 # Setup
 
+Copy data/valid/captions.csv and data/valid/images into caption_prediction and concept_detection
+
+.
+├── README.md
+├── caption_prediction
+│   ├── Dockerfile
+│   ├── data
+│   │   └── valid
+│   │       ├── captions.csv
+│   │       └── images
+│   ├── evaluator.py
+│   ├── medcat_scorer.py
+│   ├── models
+│   │   └── MedCAT
+│   │       └── umls_self_train_model_pt2ch_3760d588371755d0.zip
+│   └── requirements.txt
+└── concept_detection
+    ├── Dockerfile
+    ├── data
+    │   └── valid
+    │       ├── captions.csv
+    │       └── images
+    ├── evaluator.py
+    └── requirements.txt
+
 ## Caption Prediction Evaluation
 
-### Install requirements
-```sh
-pip install -r requirements.txt
-```
-
-### Install BLEURT
-```sh
-git clone https://github.com/google-research/bleurt.git
-cd bleurt
-pip install .
-```
-
-### Install MedCAT
-
-You need to request a licence for UMLS to use MedCAT. Download UMLS full model into models/MedCAT.
-
-### Install AlignScore
-```sh
-git clone https://github.com/yuh-zha/AlignScore.git
-cd AlignScore
-pip install .
-cd ..
-python -m spacy download en_core_web_sm
-mkdir models
-cd models
-git clone https://huggingface.co/yzha/AlignScore
-cd ..
-```
-
-### Install MedImageInsights
-```sh
-git lfs install
-git clone https://huggingface.co/lion-ai/MedImageInsights
-cd MedImageInsights
-pip install -r requirements.txt
-cd ..
-```
-
-### resolve dependencies (wip)
-```sh
-
-```
-ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
-alignscore 0.1.3 requires torch<2,>=1.12.1, but you have torch 2.5.1 which is incompatible.
-alignscore 0.1.3 requires transformers<5,>=4.20.1, but you have transformers 4.16.2 which is incompatible.
-tensorflow 2.18.0 requires numpy<2.1.0,>=1.26.0, but you have numpy 1.24.4 which is incompatible.
-tensorflow 2.18.0 requires protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<6.0.0dev,>=3.20.3, but you have protobuf 3.20.0 which is incompatible.
-
-KITE:
-conda install -c conda-forge nmslib
-pip install numpy==1.26.4
-pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.1/en_ner_bc5cdr_md-0.5.1.tar.gz
-conda install -c conda-forge gcc_linux-64 gxx_linux-64
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-python -m spacy download en_core_web_sm
-
-Debugging:
-with torch.no_grad(): in line 188 medimageinsightmodel.py
-
-## Concept Detection
-```sh
-pip install sklearn
-```
+You need to request a licence for UMLS to use caption prediction evaluation. Download UMLS full model (zip file) into caption_prediction/models/MedCAT.
