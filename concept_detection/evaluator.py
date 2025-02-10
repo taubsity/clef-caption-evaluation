@@ -1,6 +1,8 @@
 import csv
 from sklearn.metrics import f1_score
+import os
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # IMAGECLEF 2025 CAPTION - CONCEPT DETECTION
 class ConceptEvaluator:
@@ -254,9 +256,8 @@ class ConceptEvaluator:
 
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
-
-    ground_truth_path = "concept_detection_test_gt.csv"
-    ground_truth_path_secondary = "concept_detection_test_gt_secondary.csv"
+    ground_truth_path = os.path.join(current_dir, "data/valid/captions.csv")
+    submission_file_path = os.path.join(current_dir, "data/valid/captions.csv") # change this to the path of the submission file
 
     submission_file_path = "submission.csv"
 

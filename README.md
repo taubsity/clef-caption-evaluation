@@ -2,16 +2,9 @@
 
 ## Caption Prediction Evaluation
 
-### Create and Activate Conda Environment
+### Install requirements
 ```sh
-mkdir env
-conda env update -f caption_prediction/caption.yml --prefix env/clef-caption
-conda activate env/clef-caption
-```
-
-### Install BERTScore and ROUGE
-```sh
-pip install rouge-score bert-score evaluate absl-py
+pip install -r requirements.txt
 ```
 
 ### Install BLEURT
@@ -22,34 +15,8 @@ pip install .
 ```
 
 ### Install MedCAT
-```sh
-pip install medcat
-```
+
 You need to request a licence for UMLS to use MedCAT. Download UMLS full model into models/MedCAT.
-
-### Install MEDCON
-```sh
-git clone https://github.com/wyim/aci-bench.git
-cd aci-bench
-```
-
-You need to request a licence for UMLS to use MEDCON. Download https://download.nlm.nih.gov/umls/kss/2022AA/umls-2022AA-metathesaurus.zip into aci-bench/resources or copy MRCONSO.RRF and MRSTY.RRF manually. Skip the next step if the files are already in place.
-
-```sh
-cd resources
-unzip umls-2022AA-metathesaurus.zip
-cp 2022AA/META/MRCONSO.RRF .
-cp 2022AA/META/MRSTY.RRF .
-cd ..
-```
-For MEDCON you need to install quickumls.
-```sh
-pip install quickumls
-python3 -m quickumls.install resources/ resources/des
-sed -i 's/3.5.0/3.4.0/g' requirements.txt
-pip install -r requirements.txt
-cd ..
-```
 
 ### Install AlignScore
 ```sh

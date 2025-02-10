@@ -1,6 +1,7 @@
-absl-py==1.4.0
-bert-score==0.3.13
-evaluate==0.4.0
-nltk==3.8.1
-numpy==1.24.2
-rouge-score==0.1.2
+numpy
+evaluate
+rouge-score 
+bert-score 
+evaluate 
+absl-py
+medcat

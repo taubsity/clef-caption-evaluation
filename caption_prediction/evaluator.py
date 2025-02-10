@@ -36,34 +36,20 @@ class StreamToLogger:
         pass
 
 
-# sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
 sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
 # Construct paths to the module directories
-aci_bench_evaluation_dir = os.path.join(current_dir, "..", "aci-bench", "evaluation")
-med_image_insights_dir = os.path.join(current_dir, "..", "MedImageInsights")
+med_image_insights_dir = os.path.join(current_dir, "MedImageInsights")
 
 # check if the directories exist
-if not os.path.exists(aci_bench_evaluation_dir):
-    raise Exception(
-        "aci-bench/evaluation directory not found at {}".format(
-            aci_bench_evaluation_dir
-        )
-    )
 if not os.path.exists(med_image_insights_dir):
     raise Exception(
         "MedImageInsights directory not found at {}".format(med_image_insights_dir)
     )
 
-sys.path.insert(0, aci_bench_evaluation_dir)
 sys.path.insert(0, med_image_insights_dir)
 
-from UMLS_evaluation import umls_score_individual
-
 from medimageinsightmodel import MedImageInsight
-
 
 class CaptionEvaluator:
 
@@ -91,7 +77,7 @@ class CaptionEvaluator:
         logging.info("Loading MedCatScorer")
         self.medcat_scorer = MedCatScorer(
             model_path=os.path.join(
-                current_dir, "..", "models/MedCAT/medcat_models_clinical_notes_0.2.6"
+                current_dir, "models/MedCAT/medcat_models_clinical_notes_0.2.6"
             )
         )
         logging.info("Loading AlignScore")
@@ -100,14 +86,14 @@ class CaptionEvaluator:
             batch_size=32,
             device="cuda:0",
             ckpt_path=os.path.join(
-                current_dir, "..", "models/AlignScore/AlignScore-base.ckpt"
+                current_dir, "models/AlignScore/AlignScore-base.ckpt"
             ),
             evaluation_mode="nli_sp",
             verbose=False,
         )
         logging.info("Loading MedImageInsight")
         self.image_similarity_scorer = MedImageInsight(
-            model_dir=os.path.join(current_dir, "..", "MedImageInsights/2024.09.27"),
+            model_dir=os.path.join(current_dir, "MedImageInsights/2024.09.27"),
             vision_model_name="medimageinsigt-v1.0.0.pt",
             language_model_name="language_model.pth",
         )
@@ -286,18 +272,6 @@ class CaptionEvaluator:
         ]
         return np.mean(medcat_scores)
 
-    def compute_medcon(self, candidate_pairs):
-        logging.info("Computing MEDCON")
-        medcon_scores = [
-            (
-                umls_score_individual(self.gt[image_key], candidate_pairs[image_key])
-                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
-                else 1
-            )
-            for image_key in candidate_pairs
-        ]
-        return np.mean(medcon_scores)
-
     def compute_similarity(self, candidate_pairs):
         logging.info("Computing MedImageInsights Similarity")
         image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
@@ -333,8 +307,8 @@ class CaptionEvaluator:
 
 
 if __name__ == "__main__":
-    ground_truth_path = os.path.join(current_dir, "..", "data/valid/captions.csv")
-    submission_file_path = os.path.join(current_dir, "..", "data/valid/captions.csv")
+    ground_truth_path = os.path.join(current_dir, "data/valid/captions.csv")
+    submission_file_path = os.path.join(current_dir, "data/valid/captions.csv") # change this to the path of the submission file
     _client_payload = {"submission_file_path": submission_file_path}
     _context = {}
     caption_evaluator = CaptionEvaluator(ground_truth_path)
