@@ -11,9 +11,9 @@ cd caption_prediction
 docker build -t caption_prediction_evaluator .
 ```
 
-Place your submission in caption_prediction
+Place your submission in caption_prediction, choose device or put all
 ```sh
-docker run --rm -v $(pwd):/app caption_prediction_evaluator python -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+docker run --gpus '"device=3"' --rm -v $(pwd):/app caption_prediction_evaluator python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
 ```
 
 ## Concept Detection Evaluation
@@ -29,6 +29,7 @@ docker run --rm -v $(pwd):/app concept_detection_evaluator python -c "from evalu
 ```
 
 ## Required File Structure
+```plain
 .
 ├── README.md
 ├── caption_prediction
@@ -52,3 +53,4 @@ docker run --rm -v $(pwd):/app concept_detection_evaluator python -c "from evalu
     ├── evaluator.py
     ├── requirements.txt
     └── submission.csv
+```

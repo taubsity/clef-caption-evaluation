@@ -1,5 +1,5 @@
-# Use an official Python runtime as base image
-FROM python:3.11-slim
+# Use an official CUDA runtime as base image
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
 
 # Set environment variables
 ENV TOKENIZERS_PARALLELISM=false
@@ -16,29 +16,31 @@ RUN apt-get update && apt-get install -y \
     curl \
     unzip \
     git-lfs \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy the requirements file and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Install BLEURT
 RUN git clone https://github.com/google-research/bleurt.git && \
-    cd bleurt && pip install . && cd ..
+    cd bleurt && python3 -m pip install . && cd ..
+
+# Install MedImageInsights
+RUN git lfs install && \
+    git clone https://huggingface.co/lion-ai/MedImageInsights && \
+    cd MedImageInsights && python3 -m pip install -r requirements.txt && cd ..
 
 # Install AlignScore
 RUN git clone https://github.com/yuh-zha/AlignScore.git && \
-    cd AlignScore && pip install . && cd .. && \
-    python -m spacy download en_core_web_sm && \
+    cd AlignScore && python3 -m pip install . && cd .. && \
+    python3 -m spacy download en_core_web_sm && \
     mkdir -p models && \
     cd models && \
     git clone https://huggingface.co/yzha/AlignScore && \
     cd ..
 
-# Install MedImageInsights
-RUN git lfs install && \
-    git clone https://huggingface.co/lion-ai/MedImageInsights && \
-    cd MedImageInsights && pip install -r requirements.txt && cd ..
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy the evaluation script
 COPY evaluator.py .
@@ -52,4 +54,4 @@ COPY data/valid/captions.csv data/valid/captions.csv
 COPY data/valid/images data/valid/images
 
 # Run the container with a test submission file to verify everything loads correctly
-CMD ["python", "-c", "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); print('Evaluator initialized')"]
+CMD ["python3", "-c", "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); print('Evaluator initialized')"]

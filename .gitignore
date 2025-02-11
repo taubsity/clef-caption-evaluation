@@ -12,3 +12,5 @@ caption_prediction/models
 concept_detection/data
 concept_detection/__pycache__
 caption_prediction/__pycache__
+concept_detection/submission.csv
+caption_prediction/submission.csv

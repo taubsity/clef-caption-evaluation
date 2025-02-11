@@ -2,6 +2,10 @@ numpy
 evaluate
 rouge-score 
 bert-score 
-evaluate 
 absl-py
 medcat
+torch==2.0.1
+torchvision==0.15.2
+transformers==4.46.3
+tf-keras
+evaluate
