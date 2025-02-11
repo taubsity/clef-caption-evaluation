@@ -11,9 +11,10 @@ cd caption_prediction
 docker build -t caption_prediction_evaluator .
 ```
 
-Place your submission in caption_prediction, choose device or put all
+Place your submission in caption_prediction, choose device or put all.
+TODO delete mount of script only for testing
 ```sh
-docker run --gpus '"device=3"' --rm -v $(pwd):/app caption_prediction_evaluator python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+docker run --gpus '"device=3"' --rm -v $(pwd)/submission.csv:/app/submission.csv -v $(pwd)/evaluator.py:/app/evaluator.py caption_prediction_evaluator python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
 ```
 
 ## Concept Detection Evaluation

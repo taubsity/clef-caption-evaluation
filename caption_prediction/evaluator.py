@@ -1,3 +1,4 @@
+print("Loading evaluator...")
 import logging
 import os
 import sys
@@ -12,6 +13,7 @@ from bert_score import BERTScorer
 from medcat_scorer import MedCatScorer
 import base64
 
+print("Loading evaluator...")
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 logging.basicConfig(
@@ -30,7 +32,10 @@ class StreamToLogger:
 
     def write(self, buf):
         for line in buf.rstrip().splitlines():
+            # Log the message
             self.logger.log(self.log_level, line.rstrip())
+            # Print the message to the console
+            print(line.rstrip())
 
     def flush(self):
         pass
@@ -40,12 +45,14 @@ sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
 # Construct paths to the module directories
 med_image_insights_dir = os.path.join(current_dir, "MedImageInsights")
-
+print("Current directory:", current_dir)
+print("MedImageInsights path:", med_image_insights_dir)
+print("Directory exists?", os.path.exists(med_image_insights_dir))
 # check if the directories exist
-if not os.path.exists(med_image_insights_dir):
-    raise Exception(
-        "MedImageInsights directory not found at {}".format(med_image_insights_dir)
-    )
+# if not os.path.exists(med_image_insights_dir):
+#     raise Exception(
+#         "MedImageInsights directory not found at {}".format(med_image_insights_dir)
+#     )
 
 sys.path.insert(0, med_image_insights_dir)
 
@@ -57,14 +64,15 @@ class CaptionEvaluator:
     case_sensitive = False
 
     def __init__(self, ground_truth_path, **kwargs):
+        print("Initializing evaluator...")
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()
         logging.info("Loading ROUGE and BLEURT from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
-            "bleurt": (
-                evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20"),
-            ),
+            # "bleurt": (
+            #     evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20"),
+            # ),
         }
         idf_sentences = [
             self.preprocess_caption(caption) for caption in self.gt.values()
@@ -120,8 +128,8 @@ class CaptionEvaluator:
         print("ROUGE:", rouge)
         sim = self.compute_similarity(predictions)
         print("Similarity:", sim)
-        bleurt = self.compute_bleurt(predictions)
-        print("BLEURT:", bleurt)
+        # bleurt = self.compute_bleurt(predictions)
+        # print("BLEURT:", bleurt)
         medcon = self.compute_medcon(predictions)
         print("MEDCON:", medcon)
 
@@ -134,7 +142,7 @@ class CaptionEvaluator:
             "bert": bertscore,
             "rouge": rouge,
             "similarity": sim,
-            "bleurt": bleurt,
+            # "bleurt": bleurt,
             "medcon": medcon,
             "medcat": medcats,
             "align": alignscore,
@@ -237,20 +245,20 @@ class CaptionEvaluator:
         ]
         return np.mean(rouge_scores)
 
-    def compute_bleurt(self, candidate_pairs):
-        logging.info("Computing BLEURT")
-        bleurt_scores = [
-            (
-                self.scorers["bleurt"][0].compute(
-                    predictions=[self.preprocess_caption(candidate_pairs[image_key])],
-                    references=[self.preprocess_caption(self.gt[image_key])],
-                )["scores"]
-                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
-                else 1
-            )
-            for image_key in candidate_pairs
-        ]
-        return np.mean(bleurt_scores)
+    # def compute_bleurt(self, candidate_pairs):
+    #     logging.info("Computing BLEURT")
+    #     bleurt_scores = [
+    #         (
+    #             self.scorers["bleurt"][0].compute(
+    #                 predictions=[self.preprocess_caption(candidate_pairs[image_key])],
+    #                 references=[self.preprocess_caption(self.gt[image_key])],
+    #             )["scores"]
+    #             if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
+    #             else 1
+    #         )
+    #         for image_key in candidate_pairs
+    #     ]
+    #     return np.mean(bleurt_scores)
 
     def compute_alignscore(self, candidate_pairs):
         logging.info("Computing Alignscore")
@@ -268,10 +276,13 @@ class CaptionEvaluator:
 
     def compute_medcats(self, candidate_pairs):
         logging.info("Computing MEDCATS")
+        print("Type candidate pairs: ", type(candidate_pairs))
+        print(candidate_pairs)
+        # print(self.gt)
         medcat_scores = [
             (
                 self.medcat_scorer.score(
-                    self.gt[image_key], candidate_pairs[image_key], False
+                    self.gt[image_key], candidate_pairs[image_key]
                 )
                 if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
                 else 1
@@ -315,6 +326,7 @@ class CaptionEvaluator:
 
 
 if __name__ == "__main__":
+    print("Testing evaluator...")
     ground_truth_path = os.path.join(current_dir, "data/valid/captions.csv")
     submission_file_path = os.path.join(
         current_dir, "data/valid/captions.csv"

@@ -1,5 +1,5 @@
 # Use an official CUDA runtime as base image
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+FROM python:3.11-slim
 
 # Set environment variables
 ENV TOKENIZERS_PARALLELISM=false
@@ -21,13 +21,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install BLEURT
-RUN git clone https://github.com/google-research/bleurt.git && \
-    cd bleurt && python3 -m pip install . && cd ..
+# RUN git clone https://github.com/google-research/bleurt.git && \
+#     cd bleurt && python3 -m pip install . && cd ..
 
 # Install MedImageInsights
 RUN git lfs install && \
     git clone https://huggingface.co/lion-ai/MedImageInsights && \
     cd MedImageInsights && python3 -m pip install -r requirements.txt && cd ..
+
+RUN chmod -R 755 /app/MedImageInsights
 
 # Install AlignScore
 RUN git clone https://github.com/yuh-zha/AlignScore.git && \

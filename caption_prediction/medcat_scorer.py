@@ -146,6 +146,7 @@ class MedCatScorer:
         cui_list = []
 
         entities = self.cat.get_entities(text)["entities"]
+        print(entities)
         for ent in entities:
             term = ent["pretty_name"]
             cui = ent["cui"]

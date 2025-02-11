@@ -4,8 +4,8 @@ rouge-score
 bert-score 
 absl-py
 medcat
-torch==2.0.1
-torchvision==0.15.2
-transformers==4.46.3
-tf-keras
+# torch==2.0.1
+# torchvision==0.15.2
+# transformers==4.46.3
+# tensorflow==1.15.2
 evaluate
