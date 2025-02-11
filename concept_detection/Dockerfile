@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY evaluator.py .
 
 # Copy data files (ground truth)
-COPY data/valid/captions.csv data/valid/captions.csv
+COPY data/valid/concepts.csv data/valid/concepts.csv
 
 # Run the container with a test submission file to verify everything loads correctly
 CMD ["python", "-c", "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator(); print('Evaluator initialized')"]

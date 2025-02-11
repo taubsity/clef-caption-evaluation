@@ -10,3 +10,5 @@ bleurt
 caption_prediction/data
 caption_prediction/models
 concept_detection/data
+concept_detection/__pycache__
+caption_prediction/__pycache__

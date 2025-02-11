@@ -16,6 +16,7 @@ class ConceptEvaluator:
         self.ground_truth_path = ground_truth_path
         # Ground truth dict => gt[image_id] = tuple of concepts
         self.gt = self.load_gt(self.ground_truth_path)
+        self.gt_secondary = self.load_gt(self.ground_truth_path)
 
     def _evaluate(self, client_payload, _context={}):
         """
@@ -266,7 +267,7 @@ if __name__ == "__main__":
     _context = {}
 
     # Instantiate an evaluator
-    concept_evaluator = ConceptEvaluator(ground_truth_path, ground_truth_path_secondary)
+    concept_evaluator = ConceptEvaluator(ground_truth_path)
 
     # Evaluate
     result = concept_evaluator._evaluate(_client_payload, _context)

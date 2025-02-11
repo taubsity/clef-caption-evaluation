@@ -6,6 +6,29 @@ Copy data/valid/captions.csv and data/valid/images into caption_prediction and c
 
 You need to request a licence for UMLS to use caption prediction evaluation. Download UMLS full model (zip file) into caption_prediction/models/MedCAT.
 
+```sh
+cd caption_prediction
+docker build -t caption_prediction_evaluator .
+```
+
+Place your submission in caption_prediction
+```sh
+docker run --rm -v $(pwd):/app caption_prediction_evaluator python -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+```
+
+## Concept Detection Evaluation
+
+```sh
+cd concept_detection
+docker build -t concept_detection_evaluator .
+```
+
+Place your submission in concept_detection
+```sh
+docker run --rm -v $(pwd):/app concept_detection_evaluator python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+```
+
+## Required File Structure
 .
 ├── README.md
 ├── caption_prediction
@@ -19,12 +42,13 @@ You need to request a licence for UMLS to use caption prediction evaluation. Dow
 │   ├── models
 │   │   └── MedCAT
 │   │       └── umls_self_train_model_pt2ch_3760d588371755d0.zip
-│   └── requirements.txt
+│   ├── requirements.txt
+|   └── submission.csv
 └── concept_detection
     ├── Dockerfile
     ├── data
     │   └── valid
-    │       ├── captions.csv
-    │       └── images
+    │       └── concepts.csv
     ├── evaluator.py
-    └── requirements.txt
+    ├── requirements.txt
+    └── submission.csv
