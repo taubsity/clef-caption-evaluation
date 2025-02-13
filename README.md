@@ -18,7 +18,12 @@ You need docker to run the evaluations with GPU support for caption prediction e
 
 5. Run the evaluation.
     ```sh
-    docker run --gpus '"device=0"' --rm -v $(pwd)/submission.csv:/app/submission.csv caption_prediction_evaluator python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+    docker run \
+      --gpus '"device=0"' \
+      --rm \
+      -v $(pwd)/submission.csv:/app/submission.csv \
+      caption_prediction_evaluator \
+      python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
 
 ## Concept Detection Evaluation
@@ -35,7 +40,11 @@ You need docker to run the evaluations with GPU support for caption prediction e
 3. Place your `submission.csv` in `concept_detection` dir, choose device (GPU) or put all.
 
     ```sh
-    docker run --rm -v $(pwd)/submission.csv:/app/submission.csv concept_detection_evaluator python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+    docker run \
+      --rm \
+      -v $(pwd)/submission.csv:/app/submission.csv \
+      concept_detection_evaluator \
+      python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
 
 ## File Structure
@@ -66,4 +75,3 @@ This is how the file structure would look like with UMLS model and submission.cs
     ├── evaluator.py
     ├── requirements.txt
     └── submission.csv
-```
