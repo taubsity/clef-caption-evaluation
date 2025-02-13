@@ -1,35 +1,45 @@
 # Setup
 
-Copy data/valid/captions.csv and data/valid/images into caption_prediction and concept_detection
-
 ## Caption Prediction Evaluation
 
-You need to request a licence for UMLS to use caption prediction evaluation. Download UMLS full model (zip file) into caption_prediction/models/MedCAT.
+1. Copy `captions.csv` and `images` dir into `caption_prediction/data/valid`.
+   
+2. Request a licence for UMLS and then download the UMLS full model (zip file) from https://uts.nlm.nih.gov/uts/login?service=https://medcat.rosalind.kcl.ac.uk/auth-callback into `caption_prediction/models/MedCAT`.
+   
+3. Build the `caption_prediction_evaluator` docker image. 
 
-```sh
-cd caption_prediction
-docker build -t caption_prediction_evaluator .
-```
+    ```sh
+    cd caption_prediction
+    docker build -t caption_prediction_evaluator .
+    ```
+4. Place your `submission.csv` in `caption_prediction` dir, choose device (GPU) or put all.
 
-Place your submission in caption_prediction, choose device or put all.
-TODO delete mount of script only for testing
-```sh
-docker run --gpus '"device=3"' --rm -v $(pwd)/submission.csv:/app/submission.csv -v $(pwd)/evaluator.py:/app/evaluator.py caption_prediction_evaluator python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
-```
+5. Run the evaluation.
+    ```sh
+    docker run --gpus '"device=0"' --rm -v $(pwd)/submission.csv:/app/submission.csv caption_prediction_evaluator python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+    ```
 
 ## Concept Detection Evaluation
 
-```sh
-cd concept_detection
-docker build -t concept_detection_evaluator .
-```
+1. Copy `concepts.csv` into `concept_detection/data/valid`.
 
-Place your submission in concept_detection
-```sh
-docker run --rm -v $(pwd)/submission.csv:/app/submission.csv concept_detection_evaluator python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
-```
+2. Build the `concept_detection_evaluator` docker image. 
 
-## Required File Structure
+    ```sh
+    cd concept_detection
+    docker build -t concept_detection_evaluator .
+    ```
+
+3. Place your `submission.csv` in `concept_detection` dir, choose device (GPU) or put all.
+
+    ```sh
+    docker run --rm -v $(pwd)/submission.csv:/app/submission.csv concept_detection_evaluator python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+    ```
+
+## File Structure
+
+This is how the file structure would look like with UMLS model and submission.csv files:
+
 ```plain
 .
 ├── README.md
