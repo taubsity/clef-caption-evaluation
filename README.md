@@ -1,5 +1,7 @@
 # Setup
 
+You need docker to run the evaluations with GPU support for caption prediction evaluation.
+
 ## Caption Prediction Evaluation
 
 1. Copy `captions.csv` and `images` dir into `caption_prediction/data/valid`.
