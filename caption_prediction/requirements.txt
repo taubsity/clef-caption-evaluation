@@ -9,3 +9,6 @@ medcat
 # transformers==4.46.3
 # tensorflow==1.15.2
 evaluate
+nltk
+torch
+git+https://github.com/lucadiliello/bleurt-pytorch.git

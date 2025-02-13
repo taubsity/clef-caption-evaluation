@@ -147,7 +147,7 @@ class MedCatScorer:
 
         entities = self.cat.get_entities(text)["entities"]
         print(entities)
-        for ent in entities:
+        for ent in entities.values():  # Fix: iterate over the values of the entities dictionary
             term = ent["pretty_name"]
             cui = ent["cui"]
             if cui not in concepts.get(term, []):
@@ -181,3 +181,21 @@ class MedCatScorer:
         except Exception as e:
             print(f"Error calculating F1 score: {e}")
             return 0
+
+
+if __name__ == "__main__":
+    import os
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(current_dir, "models/MedCAT/umls_self_train_model_pt2ch_3760d588371755d0.zip")
+    
+    if not os.path.exists(model_path):
+        raise Exception("MedCAT model not found at {}".format(model_path))
+    
+    scorer = MedCatScorer(model_path=model_path)
+    
+    reference = "The patient was diagnosed with pneumonia. But the patient also has a history of asthma."
+    prediction = "The patient has pneumonia."
+    
+    score = scorer.score(reference, prediction)
+    print(f"MedCat Score: {score}")

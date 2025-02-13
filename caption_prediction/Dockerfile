@@ -43,6 +43,7 @@ RUN git clone https://github.com/yuh-zha/AlignScore.git && \
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN python -c "import nltk; nltk.download('punkt_tab')"
 
 # Copy the evaluation script
 COPY evaluator.py .
@@ -54,6 +55,3 @@ COPY models/MedCAT models/MedCAT
 # Copy data files (ground truth)
 COPY data/valid/captions.csv data/valid/captions.csv
 COPY data/valid/images data/valid/images
-
-# Run the container with a test submission file to verify everything loads correctly
-CMD ["python3", "-c", "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); print('Evaluator initialized')"]

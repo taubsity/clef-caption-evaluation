@@ -26,7 +26,7 @@ docker build -t concept_detection_evaluator .
 
 Place your submission in concept_detection
 ```sh
-docker run --rm -v $(pwd):/app concept_detection_evaluator python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+docker run --rm -v $(pwd)/submission.csv:/app/submission.csv concept_detection_evaluator python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
 ```
 
 ## Required File Structure

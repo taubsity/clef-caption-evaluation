@@ -12,8 +12,9 @@ from alignscore import AlignScore
 from bert_score import BERTScorer
 from medcat_scorer import MedCatScorer
 import base64
+import torch
+from bleurt_pytorch import BleurtConfig, BleurtForSequenceClassification, BleurtTokenizer
 
-print("Loading evaluator...")
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 logging.basicConfig(
@@ -45,14 +46,12 @@ sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
 
 # Construct paths to the module directories
 med_image_insights_dir = os.path.join(current_dir, "MedImageInsights")
-print("Current directory:", current_dir)
-print("MedImageInsights path:", med_image_insights_dir)
-print("Directory exists?", os.path.exists(med_image_insights_dir))
-# check if the directories exist
-# if not os.path.exists(med_image_insights_dir):
-#     raise Exception(
-#         "MedImageInsights directory not found at {}".format(med_image_insights_dir)
-#     )
+
+# check if the directory exist
+if not os.path.exists(med_image_insights_dir):
+    raise Exception(
+        "MedImageInsights directory not found at {}".format(med_image_insights_dir)
+    )
 
 sys.path.insert(0, med_image_insights_dir)
 
@@ -67,12 +66,9 @@ class CaptionEvaluator:
         print("Initializing evaluator...")
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()
-        logging.info("Loading ROUGE and BLEURT from HuggingFace")
+        logging.info("Loading ROUGE from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
-            # "bleurt": (
-            #     evaluate.load("bleurt", module_type="metric", checkpoint="BLEURT-20"),
-            # ),
         }
         idf_sentences = [
             self.preprocess_caption(caption) for caption in self.gt.values()
@@ -111,30 +107,37 @@ class CaptionEvaluator:
             vision_model_name="medimageinsigt-v1.0.0.pt",
             language_model_name="language_model.pth",
         )
-        self.image_similarity_scorer.load_model()
+        logging.info("Loading BLEURT")
+        self.bleurt_config = BleurtConfig.from_pretrained('lucadiliello/BLEURT-20-D12')
+        self.bleurt_model = BleurtForSequenceClassification.from_pretrained('lucadiliello/BLEURT-20-D12')
+        self.bleurt_tokenizer = BleurtTokenizer.from_pretrained('lucadiliello/BLEURT-20-D12')
 
     def _evaluate(self, client_payload, _context={}):
         logging.info("Evaluating...")
         submission_file_path = client_payload["submission_file_path"]
         predictions = self.load_predictions(submission_file_path)
 
-        medcats = self.compute_medcats(predictions)
-        print("Medcats:", medcats)
+        print("Compute BERTScore")
         bertscore = self.compute_bertscore(predictions)
         print("BERTScore:", bertscore)
+        print("Compute AlignScore")
         alignscore = self.compute_alignscore(predictions)
         print("AlignScore:", alignscore)
+        print("Compute ROUGE")
         rouge = self.compute_rouge(predictions)
         print("ROUGE:", rouge)
+        print("Compute Image-Caption Similarity")
         sim = self.compute_similarity(predictions)
         print("Similarity:", sim)
-        # bleurt = self.compute_bleurt(predictions)
-        # print("BLEURT:", bleurt)
-        medcon = self.compute_medcon(predictions)
-        print("MEDCON:", medcon)
+        print("Compute BLEURT")
+        bleurt = self.compute_bleurt(predictions)
+        print("BLEURT:", bleurt)
+        print("Compute MedCAT")
+        medcats = self.compute_medcats(predictions)
+        print("Medcats:", medcats)
 
         relevance = np.mean([bertscore, rouge, sim])
-        factuality = np.mean([medcon, alignscore])
+        factuality = np.mean([medcats, alignscore])
 
         _result_object = {
             "score": relevance,
@@ -142,8 +145,7 @@ class CaptionEvaluator:
             "bert": bertscore,
             "rouge": rouge,
             "similarity": sim,
-            # "bleurt": bleurt,
-            "medcon": medcon,
+            "bleurt": bleurt,
             "medcat": medcats,
             "align": alignscore,
         }
@@ -158,6 +160,11 @@ class CaptionEvaluator:
         pairs = {}
         with open(self.ground_truth_path) as csvfile:
             reader = csv.reader(csvfile)
+            first_line = next(reader)
+            # Check if it's a header
+            if first_line and first_line[0].lower() != "id":
+                # Process the first line if it's not a header
+                pairs[first_line[0]] = first_line[1]
             for row in tqdm(reader):
                 pairs[row[0]] = row[1]
         return pairs
@@ -169,6 +176,11 @@ class CaptionEvaluator:
         occured_images = set()
         with open(submission_file_path) as csvfile:
             reader = csv.reader(csvfile)
+            first_line = next(reader)
+            # Check if it's a header
+            if first_line and first_line[0].lower() != "id":
+                # Process the first line if it's not a header
+                pairs[first_line[0]] = first_line[1]
             for lineCnt, row in enumerate(tqdm(reader)):
                 if len(row) < 2:
                     self.raise_exception(
@@ -245,20 +257,6 @@ class CaptionEvaluator:
         ]
         return np.mean(rouge_scores)
 
-    # def compute_bleurt(self, candidate_pairs):
-    #     logging.info("Computing BLEURT")
-    #     bleurt_scores = [
-    #         (
-    #             self.scorers["bleurt"][0].compute(
-    #                 predictions=[self.preprocess_caption(candidate_pairs[image_key])],
-    #                 references=[self.preprocess_caption(self.gt[image_key])],
-    #             )["scores"]
-    #             if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
-    #             else 1
-    #         )
-    #         for image_key in candidate_pairs
-    #     ]
-    #     return np.mean(bleurt_scores)
 
     def compute_alignscore(self, candidate_pairs):
         logging.info("Computing Alignscore")
@@ -278,21 +276,21 @@ class CaptionEvaluator:
         logging.info("Computing MEDCATS")
         print("Type candidate pairs: ", type(candidate_pairs))
         print(candidate_pairs)
-        # print(self.gt)
-        medcat_scores = [
-            (
-                self.medcat_scorer.score(
-                    self.gt[image_key], candidate_pairs[image_key]
-                )
-                if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0
-                else 1
-            )
-            for image_key in candidate_pairs
-        ]
+        medcat_scores = []
+        for image_key in candidate_pairs:
+            print("GT: ", self.gt[image_key])
+            print("Candidate: ", candidate_pairs[image_key])
+            if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0:
+                score = self.medcat_scorer.score(self.gt[image_key], candidate_pairs[image_key])
+            else:
+                score = 1
+            medcat_scores.append(score)
         return np.mean(medcat_scores)
 
     def compute_similarity(self, candidate_pairs):
         logging.info("Computing MedImageInsights Similarity")
+        self.image_similarity_scorer.load_model()
+
         image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
         if not os.path.exists(image_dir):
             raise Exception("Image directory does not exist at {}".format(image_dir))
@@ -323,6 +321,16 @@ class CaptionEvaluator:
                 score = 1
             sim_scores.append(score)
         return np.mean(sim_scores)
+
+    def compute_bleurt(self, candidate_pairs):
+        logging.info("Computing BLEURT")
+        references = [self.preprocess_caption(self.gt[image_key]) for image_key in candidate_pairs]
+        candidates = [self.preprocess_caption(candidate_pairs[image_key]) for image_key in candidate_pairs]
+        self.bleurt_model.eval()
+        with torch.no_grad():
+            inputs = self.bleurt_tokenizer(references, candidates, padding='longest', return_tensors='pt')
+            res = self.bleurt_model(**inputs).logits.flatten().tolist()
+        return np.mean(res)
 
 
 if __name__ == "__main__":
