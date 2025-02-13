@@ -213,6 +213,7 @@ class ConceptEvaluator:
             "C0817096",
             "C0006141",
             "C0000726",
+            # TODO: Add the OCT CUI here
         }
 
         # Evaluate each predicted concept list against the ground truth

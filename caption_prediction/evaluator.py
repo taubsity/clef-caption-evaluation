@@ -24,7 +24,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-
 class StreamToLogger:
     def __init__(self, logger, log_level):
         self.logger = logger
@@ -56,7 +55,6 @@ if not os.path.exists(med_image_insights_dir):
 sys.path.insert(0, med_image_insights_dir)
 
 from medimageinsightmodel import MedImageInsight
-
 
 class CaptionEvaluator:
 
@@ -328,7 +326,7 @@ class CaptionEvaluator:
         candidates = [self.preprocess_caption(candidate_pairs[image_key]) for image_key in candidate_pairs]
         self.bleurt_model.eval()
         with torch.no_grad():
-            inputs = self.bleurt_tokenizer(references, candidates, padding='longest', return_tensors='pt')
+            inputs = self.bleurt_tokenizer(references, candidates, padding='longest', return_tensors='pt', truncation=True, max_length=512)
             res = self.bleurt_model(**inputs).logits.flatten().tolist()
         return np.mean(res)
 
