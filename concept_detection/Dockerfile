@@ -4,7 +4,6 @@ FROM python:3.11-slim
 # Set environment variables
 ENV TOKENIZERS_PARALLELISM=false
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GROUND_TRUTH_PATH="/app/data/valid/captions.csv"
 
 # Set working directory inside the container
 WORKDIR /app
@@ -26,6 +25,4 @@ COPY evaluator.py .
 
 # Copy data files (ground truth)
 COPY data/valid/concepts.csv data/valid/concepts.csv
-
-# Run the container with a test submission file to verify everything loads correctly
-CMD ["python", "-c", "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator(); print('Evaluator initialized')"]
+COPY data/valid/concepts_manual.csv data/valid/concepts_manual.csv

@@ -23,7 +23,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
       --rm \
       -v $(pwd)/submission.csv:/app/submission.csv \
       caption_prediction_evaluator \
-      python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator('/app/data/valid/captions.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+      python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
 
 ## Concept Detection Evaluation
@@ -44,7 +44,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
       --rm \
       -v $(pwd)/submission.csv:/app/submission.csv \
       concept_detection_evaluator \
-      python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator('/app/data/valid/concepts.csv'); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
+      python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator(); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
 
 ## File Structure
@@ -71,7 +71,8 @@ This is how the file structure would look like with UMLS model and submission.cs
     ├── Dockerfile
     ├── data
     │   └── valid
-    │       └── concepts.csv
+    │       ├── concepts.csv
+    │       └── concepts_manual.csv
     ├── evaluator.py
     ├── requirements.txt
     └── submission.csv

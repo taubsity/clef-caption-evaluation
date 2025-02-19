@@ -60,7 +60,7 @@ class CaptionEvaluator:
 
     case_sensitive = False
 
-    def __init__(self, ground_truth_path, **kwargs):
+    def __init__(self, ground_truth_path='/app/data/valid/captions.csv', **kwargs):
         print("Initializing evaluator...")
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()

@@ -7,16 +7,17 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # IMAGECLEF 2025 CAPTION - CONCEPT DETECTION
 class ConceptEvaluator:
 
-    def __init__(self, ground_truth_path, **kwargs):
+    def __init__(self, ground_truth_path='/app/data/valid/concepts.csv', secondary_ground_truth_path='/app/data/valid/concepts_manual.csv', **kwargs):
         """
         This is the evaluator class which will be used for the evaluation.
         Please note that the class name should be `ConceptEvaluator`
         `ground_truth` : Holds the path for the ground truth which is used to score the submissions.
         """
         self.ground_truth_path = ground_truth_path
+        self.ground_truth_path_secondary = secondary_ground_truth_path
         # Ground truth dict => gt[image_id] = tuple of concepts
         self.gt = self.load_gt(self.ground_truth_path)
-        self.gt_secondary = self.load_gt(self.ground_truth_path)
+        self.gt_secondary = self.load_gt(self.ground_truth_path_secondary)
 
     def _evaluate(self, client_payload, _context={}):
         """
@@ -256,8 +257,9 @@ class ConceptEvaluator:
 
 # TEST THIS EVALUATOR
 if __name__ == "__main__":
-    ground_truth_path = os.path.join(current_dir, "data/valid/captions.csv")
-    submission_file_path = os.path.join(current_dir, "data/valid/captions.csv") # change this to the path of the submission file
+    ground_truth_path = os.path.join(current_dir, "data/valid/concepts.csv")
+    ground_truth_path_secondary = os.path.join(current_dir, "data/valid/concepts_manual.csv")
+    submission_file_path = os.path.join(current_dir, "data/valid/concepts.csv") # change this to the path of the submission file
 
     submission_file_path = "submission.csv"
 
@@ -268,7 +270,7 @@ if __name__ == "__main__":
     _context = {}
 
     # Instantiate an evaluator
-    concept_evaluator = ConceptEvaluator(ground_truth_path)
+    concept_evaluator = ConceptEvaluator(ground_truth_path, ground_truth_path_secondary)
 
     # Evaluate
     result = concept_evaluator._evaluate(_client_payload, _context)

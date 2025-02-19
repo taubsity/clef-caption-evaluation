@@ -4,7 +4,6 @@ FROM python:3.11-slim
 # Set environment variables
 ENV TOKENIZERS_PARALLELISM=false
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GROUND_TRUTH_PATH="/app/data/valid/captions.csv"
 
 # Set working directory inside the container
 WORKDIR /app
