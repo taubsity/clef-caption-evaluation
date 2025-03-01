@@ -37,7 +37,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
     docker build -t concept_detection_evaluator .
     ```
 
-3. Place your `submission.csv` in `concept_detection` dir, choose device (GPU) or put all.
+3. Place your `submission.csv` in `concept_detection` dir and run evaluation.
 
     ```sh
     docker run \
