@@ -27,7 +27,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
 
 ## Concept Detection Evaluation
 
-1. Copy `concepts.csv` into `concept_detection/data/valid`.
+1. Copy `concepts.csv` and `concepts_manual.csv` into `concept_detection/data/valid`.
 
 2. Build the `concept_detection_evaluator` docker image. 
 
