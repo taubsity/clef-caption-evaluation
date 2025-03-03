@@ -14,9 +14,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
     cd caption_prediction
     docker build -t caption_prediction_evaluator .
     ```
-4. Place your `submission.csv` in `caption_prediction` dir, choose device (GPU) or put all.
-
-5. Run the evaluation.
+4. Place your `submission.csv` in `caption_prediction` dir, choose device (GPU) or put all and run the evaluation.
     ```sh
     docker run \
       --gpus '"device=0"' \
