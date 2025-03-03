@@ -14,3 +14,4 @@ concept_detection/__pycache__
 caption_prediction/__pycache__
 concept_detection/submission.csv
 caption_prediction/submission.csv
+concept_detection/*.csv
