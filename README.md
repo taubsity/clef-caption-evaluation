@@ -14,9 +14,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
     cd caption_prediction
     docker build -t caption_prediction_evaluator .
     ```
-4. Place your `submission.csv` in `caption_prediction` dir, choose device (GPU) or put all.
-
-5. Run the evaluation.
+4. Place your `submission.csv` in `caption_prediction` dir, choose device (GPU) or put all and run the evaluation.
     ```sh
     docker run \
       --gpus '"device=0"' \
@@ -25,10 +23,11 @@ You need docker to run the evaluations with GPU support for caption prediction e
       caption_prediction_evaluator \
       python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
+    Submission format: `submission.csv` with the two columns **ID** and **Caption**.
 
 ## Concept Detection Evaluation
 
-1. Copy `concepts.csv` into `concept_detection/data/valid`.
+1. Copy `concepts.csv` and `concepts_manual.csv` into `concept_detection/data/valid`.
 
 2. Build the `concept_detection_evaluator` docker image. 
 
@@ -37,7 +36,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
     docker build -t concept_detection_evaluator .
     ```
 
-3. Place your `submission.csv` in `concept_detection` dir, choose device (GPU) or put all.
+3. Place your `submission.csv` in `concept_detection` dir and run evaluation.
 
     ```sh
     docker run \
@@ -46,6 +45,10 @@ You need docker to run the evaluations with GPU support for caption prediction e
       concept_detection_evaluator \
       python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator(); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
+    Submission format: `submission.csv` with the two columns **ID** and **CUIs** with semicolon seperated CUIs. Example:
+   ```plain
+   ImageCLEFmedical_Caption_2024_valid_000001,C0040405;C0856747
+   ```
 
 ## File Structure
 
