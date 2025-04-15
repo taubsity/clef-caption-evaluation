@@ -23,7 +23,10 @@ You need docker to run the evaluations with GPU support for caption prediction e
       caption_prediction_evaluator \
       python3 -c "from evaluator import CaptionEvaluator; evaluator = CaptionEvaluator(); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
-    Submission format: `submission.csv` with the two columns **ID** and **Caption**.
+    Submission format: `submission.csv` with the two columns **ID** and **Caption**. Example:
+    ```plain
+    ImageCLEFmedical_Caption_2025_valid_0,"Illustration of the original image with an ROI.T: Tumor."
+    ```
 
 ## Concept Detection Evaluation
 
