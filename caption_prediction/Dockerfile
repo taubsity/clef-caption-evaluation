@@ -48,5 +48,4 @@ COPY medcat_scorer.py .
 COPY models/MedCAT models/MedCAT
 
 # Copy data files (ground truth)
-COPY data/valid/captions.csv data/valid/captions.csv
-COPY data/valid/images data/valid/images
+COPY data/ data/
