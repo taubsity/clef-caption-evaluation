@@ -42,6 +42,7 @@ class StreamToLogger:
 
 
 sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
+sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
 
 # Construct paths to the module directories
 med_image_insights_dir = os.path.join(current_dir, "MedImageInsights")
@@ -147,6 +148,33 @@ class CaptionEvaluator:
             "medcat": medcats,
             "align": alignscore,
         }
+        logging.info("Results:")
+        logging.info(
+            "Similarity,BERTScore,ROUGE,BLEURT,Relevance,Medcats,AlignScore,Factuality\n"
+            + "{},{},{},{},{},{},{},{}\n".format(
+                sim,
+                bertscore,
+                rouge,
+                bleurt,
+                relevance,
+                medcats,
+                alignscore,
+                factuality,
+            )
+        )
+        print(
+            "Similarity,BERTScore,ROUGE,BLEURT,Relevance,Medcats,AlignScore,Factuality\n"
+            + "{},{},{},{},{},{},{},{}\n".format(
+                sim,
+                bertscore,
+                rouge,
+                bleurt,
+                relevance,
+                medcats,
+                alignscore,
+                factuality,
+            )
+        )
 
         assert "score" in _result_object
         assert "score_secondary" in _result_object
@@ -276,8 +304,6 @@ class CaptionEvaluator:
         print(candidate_pairs)
         medcat_scores = []
         for image_key in candidate_pairs:
-            print("GT: ", self.gt[image_key])
-            print("Candidate: ", candidate_pairs[image_key])
             if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0:
                 score = self.medcat_scorer.score(self.gt[image_key], candidate_pairs[image_key])
             else:

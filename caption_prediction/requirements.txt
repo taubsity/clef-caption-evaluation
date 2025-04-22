@@ -12,3 +12,4 @@ evaluate
 nltk
 torch
 git+https://github.com/lucadiliello/bleurt-pytorch.git
+hf_xet

@@ -1,4 +1,4 @@
-# Use an official CUDA runtime as base image
+# Use an official Python runtime as base image
 FROM python:3.11-slim
 
 # Set environment variables
@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set working directory inside the container
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including tini
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -18,10 +18,6 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
-
-# Install BLEURT
-# RUN git clone https://github.com/google-research/bleurt.git && \
-#     cd bleurt && python3 -m pip install . && cd ..
 
 # Install MedImageInsights
 RUN git lfs install && \
