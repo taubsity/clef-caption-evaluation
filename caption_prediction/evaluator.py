@@ -295,18 +295,20 @@ class CaptionEvaluator:
             gt_caption = self.gt[image_key]
             try:
                 if len(gt_caption) == 0 and len(candidate_caption) == 0:
+                    print("Both captions are empty")
                     score = 1
                 else:
-                    embeddings = self.image_similarity_scorer.encode(
-                        images=[images[image_key]], texts=[candidate_caption]
-                    )
-                    v = embeddings["image_embeddings"][0]
-                    c = embeddings["text_embeddings"][0]
-                    w = 2.5
-                    cos = np.dot(c, v) / (np.linalg.norm(c) * np.linalg.norm(v))
-                    score = w * np.max([cos, 0])
+                    with torch.no_grad():
+                        embeddings = self.image_similarity_scorer.encode(
+                            images=[images[image_key]], texts=[candidate_caption]
+                        )
+                        v = embeddings["image_embeddings"][0]
+                        c = embeddings["text_embeddings"][0]
+                        w = 2.5
+                        cos = np.dot(c, v) / (np.linalg.norm(c) * np.linalg.norm(v))
+                        score = w * np.max([cos, 0])
             except Exception as e:
-                logging.error(e)
+                print(e)
                 score = 1
             sim_scores.append(score)
         return np.mean(sim_scores)
