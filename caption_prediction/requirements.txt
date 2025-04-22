@@ -6,7 +6,7 @@ absl-py
 medcat
 # torch==2.0.1
 # torchvision==0.15.2
-# transformers==4.46.3
+transformers==4.49
 # tensorflow==1.15.2
 evaluate
 nltk
