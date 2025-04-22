@@ -1,5 +1,3 @@
-print("Loading evaluator...")
-import logging
 import os
 import sys
 import csv
@@ -13,36 +11,13 @@ from bert_score import BERTScorer
 from medcat_scorer import MedCatScorer
 import base64
 import torch
-from bleurt_pytorch import BleurtConfig, BleurtForSequenceClassification, BleurtTokenizer
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-logging.basicConfig(
-    filename=os.path.join(current_dir, "log.log"),
-    level=logging.INFO,
-    format="%(asctime)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+from bleurt_pytorch import (
+    BleurtConfig,
+    BleurtForSequenceClassification,
+    BleurtTokenizer,
 )
 
-class StreamToLogger:
-    def __init__(self, logger, log_level):
-        self.logger = logger
-        self.log_level = log_level
-        self.linebuf = ""
-
-    def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            # Log the message
-            self.logger.log(self.log_level, line.rstrip())
-            # Print the message to the console
-            print(line.rstrip())
-
-    def flush(self):
-        pass
-
-
-sys.stderr = StreamToLogger(logging.getLogger("STDERR"), logging.ERROR)
-sys.stdout = StreamToLogger(logging.getLogger("STDOUT"), logging.INFO)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Construct paths to the module directories
 med_image_insights_dir = os.path.join(current_dir, "MedImageInsights")
@@ -57,28 +32,29 @@ sys.path.insert(0, med_image_insights_dir)
 
 from medimageinsightmodel import MedImageInsight
 
+
 class CaptionEvaluator:
 
     case_sensitive = False
 
-    def __init__(self, ground_truth_path='/app/data/valid/captions.csv', **kwargs):
+    def __init__(self, ground_truth_path="/app/data/valid/captions.csv", **kwargs):
         print("Initializing evaluator...")
         self.ground_truth_path = ground_truth_path
         self.gt = self.load_gt()
-        logging.info("Loading ROUGE from HuggingFace")
+        print("Loading ROUGE from HuggingFace")
         self.scorers = {
             "rouge": (evaluate.load("rouge"),),
         }
         idf_sentences = [
             self.preprocess_caption(caption) for caption in self.gt.values()
         ]
-        logging.info("Loading BERTScore")
+        print("Loading BERTScore")
         self.bert_scorer = BERTScorer(
             model_type="microsoft/deberta-xlarge-mnli",
             idf=True,
             idf_sents=idf_sentences,
         )
-        logging.info("Loading MedCatScorer")
+        print("Loading MedCatScorer")
         self.medcat_scorer = MedCatScorer(
             model_path=os.path.join(
                 current_dir,
@@ -89,7 +65,7 @@ class CaptionEvaluator:
                 ][0],
             )
         )
-        logging.info("Loading AlignScore")
+        print("Loading AlignScore")
         self.align_scorer = AlignScore(
             model="roberta-large",
             batch_size=32,
@@ -100,19 +76,23 @@ class CaptionEvaluator:
             evaluation_mode="nli_sp",
             verbose=False,
         )
-        logging.info("Loading MedImageInsight")
+        print("Loading MedImageInsight")
         self.image_similarity_scorer = MedImageInsight(
             model_dir=os.path.join(current_dir, "MedImageInsights/2024.09.27"),
             vision_model_name="medimageinsigt-v1.0.0.pt",
             language_model_name="language_model.pth",
         )
-        logging.info("Loading BLEURT")
-        self.bleurt_config = BleurtConfig.from_pretrained('lucadiliello/BLEURT-20-D12')
-        self.bleurt_model = BleurtForSequenceClassification.from_pretrained('lucadiliello/BLEURT-20-D12')
-        self.bleurt_tokenizer = BleurtTokenizer.from_pretrained('lucadiliello/BLEURT-20-D12')
+        print("Loading BLEURT")
+        self.bleurt_config = BleurtConfig.from_pretrained("lucadiliello/BLEURT-20-D12")
+        self.bleurt_model = BleurtForSequenceClassification.from_pretrained(
+            "lucadiliello/BLEURT-20-D12"
+        )
+        self.bleurt_tokenizer = BleurtTokenizer.from_pretrained(
+            "lucadiliello/BLEURT-20-D12"
+        )
 
     def _evaluate(self, client_payload, _context={}):
-        logging.info("Evaluating...")
+        print("Evaluating...")
         submission_file_path = client_payload["submission_file_path"]
         predictions = self.load_predictions(submission_file_path)
 
@@ -148,20 +128,6 @@ class CaptionEvaluator:
             "medcat": medcats,
             "align": alignscore,
         }
-        logging.info("Results:")
-        logging.info(
-            "Similarity,BERTScore,ROUGE,BLEURT,Relevance,Medcats,AlignScore,Factuality\n"
-            + "{},{},{},{},{},{},{},{}\n".format(
-                sim,
-                bertscore,
-                rouge,
-                bleurt,
-                relevance,
-                medcats,
-                alignscore,
-                factuality,
-            )
-        )
         print(
             "Similarity,BERTScore,ROUGE,BLEURT,Relevance,Medcats,AlignScore,Factuality\n"
             + "{},{},{},{},{},{},{},{}\n".format(
@@ -182,7 +148,7 @@ class CaptionEvaluator:
         return _result_object
 
     def load_gt(self):
-        logging.info("Loading ground truth...")
+        print("Loading ground truth...")
         pairs = {}
         with open(self.ground_truth_path) as csvfile:
             reader = csv.reader(csvfile)
@@ -196,7 +162,7 @@ class CaptionEvaluator:
         return pairs
 
     def load_predictions(self, submission_file_path):
-        logging.info("Loading predictions...")
+        print("Loading predictions...")
         pairs = {}
         image_ids_gt = set(self.gt.keys())
         occured_images = set()
@@ -252,7 +218,7 @@ class CaptionEvaluator:
         return caption
 
     def compute_bertscore(self, candidate_pairs):
-        logging.info("Computing BERTScore")
+        print("Computing BERTScore")
         bert_scores = [
             (
                 self.bert_scorer.score(
@@ -267,7 +233,7 @@ class CaptionEvaluator:
         return np.mean(bert_scores)
 
     def compute_rouge(self, candidate_pairs):
-        logging.info("Computing ROUGE")
+        print("Computing ROUGE")
         rouge_scores = [
             (
                 self.scorers["rouge"][0].compute(
@@ -283,9 +249,8 @@ class CaptionEvaluator:
         ]
         return np.mean(rouge_scores)
 
-
     def compute_alignscore(self, candidate_pairs):
-        logging.info("Computing Alignscore")
+        print("Computing Alignscore")
         align_scores = [
             (
                 self.align_scorer.score(
@@ -299,20 +264,20 @@ class CaptionEvaluator:
         return np.mean(align_scores)
 
     def compute_medcats(self, candidate_pairs):
-        logging.info("Computing MEDCATS")
-        print("Type candidate pairs: ", type(candidate_pairs))
-        print(candidate_pairs)
+        print("Computing MEDCATS")
         medcat_scores = []
         for image_key in candidate_pairs:
             if len(self.gt[image_key]) != 0 or len(candidate_pairs[image_key]) != 0:
-                score = self.medcat_scorer.score(self.gt[image_key], candidate_pairs[image_key])
+                score = self.medcat_scorer.score(
+                    self.gt[image_key], candidate_pairs[image_key]
+                )
             else:
                 score = 1
             medcat_scores.append(score)
         return np.mean(medcat_scores)
 
     def compute_similarity(self, candidate_pairs):
-        logging.info("Computing MedImageInsights Similarity")
+        print("Computing MedImageInsights Similarity")
         self.image_similarity_scorer.load_model()
 
         image_dir = os.path.join(os.path.dirname(self.ground_truth_path), "images")
@@ -347,12 +312,24 @@ class CaptionEvaluator:
         return np.mean(sim_scores)
 
     def compute_bleurt(self, candidate_pairs):
-        logging.info("Computing BLEURT")
-        references = [self.preprocess_caption(self.gt[image_key]) for image_key in candidate_pairs]
-        candidates = [self.preprocess_caption(candidate_pairs[image_key]) for image_key in candidate_pairs]
+        print("Computing BLEURT")
+        references = [
+            self.preprocess_caption(self.gt[image_key]) for image_key in candidate_pairs
+        ]
+        candidates = [
+            self.preprocess_caption(candidate_pairs[image_key])
+            for image_key in candidate_pairs
+        ]
         self.bleurt_model.eval()
         with torch.no_grad():
-            inputs = self.bleurt_tokenizer(references, candidates, padding='longest', return_tensors='pt', truncation=True, max_length=512)
+            inputs = self.bleurt_tokenizer(
+                references,
+                candidates,
+                padding="longest",
+                return_tensors="pt",
+                truncation=True,
+                max_length=512,
+            )
             res = self.bleurt_model(**inputs).logits.flatten().tolist()
         return np.mean(res)
 
