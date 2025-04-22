@@ -200,6 +200,7 @@ class CaptionEvaluator:
                 f"Number of image IDs in submission file not equal to number of image IDs in testset.\nNumber in testset: {len(image_ids_gt)}\nNumber in submission: {len(occured_images)}",
                 lineCnt,
             )
+        print("Number of image IDs in submission file: {}".format(len(occured_images)))
         return pairs
 
     def raise_exception(self, message, record_count, *args):
