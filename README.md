@@ -59,7 +59,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
 
    Example:
    ```plain
-   ID,cui
+   ID,CUIs
    ImageCLEFmedical_Caption_2024_valid_000001,C0040405;C0856747
    ```
 
