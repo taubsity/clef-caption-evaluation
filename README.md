@@ -1,6 +1,6 @@
 # Setup
 
-You need docker to run the evaluations with GPU support for caption prediction evaluation.
+You need docker to run the evaluations with GPU support for caption prediction evaluation. Please refer to the last section of this README to see submission format instructions.
 
 ## Caption Prediction Evaluation
 
@@ -92,3 +92,22 @@ This is how the file structure would look like with UMLS model and submission.cs
     ├── evaluator.py
     ├── requirements.txt
     └── submission.csv
+```
+
+# Submission Format Instructions
+
+Please note the following when using the scripts or submitting to the ai4mediabench website.
+
+* ai4mediabench requires a zip file (name it as you like) with your submission in csv format (named "submission.csv").
+* Your submission can only contain two columns ID,Caption or ID,CUIs.
+* The submission check on the site is very strict and does not allow extra (even empty) lines in the file.
+* Image IDs can only appear once in the file.
+* Only include IDs from the official test set.
+* Ensure standard utf-8 encoding.
+
+* For caption prediction:
+  * Use quotation marks for all captions, or at least for those that contain a comma (,).
+
+* For concept detection:
+  * Remove duplicate CUIs on a line.
+  * Use ; to separate CUIs.
