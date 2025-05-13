@@ -98,7 +98,7 @@ This is how the file structure would look like with UMLS model and submission.cs
 
 Please note the following when using the scripts or submitting to the ai4mediabench website.
 
-* ai4mediabench requires a zip file (name it as you like) with your submission in csv format (named "submission.csv").
+* ai4mediabench requires a zip file (name it as you like) with only your submission in csv format (named "submission.csv").
 * Your submission can only contain two columns ID,Caption or ID,CUIs.
 * The submission check on the site is very strict and does not allow extra (even empty) lines in the file.
 * Image IDs can only appear once in the file.
