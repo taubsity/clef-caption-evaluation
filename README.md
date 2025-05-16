@@ -49,7 +49,7 @@ You need docker to run the evaluations with GPU support for caption prediction e
     ```sh
     docker run \
       --rm \
-      -v $(pwd)/submission.csv:/app/submission.csv \
+      -v $(pwd)/johanna.csv:/app/submission.csv \
       concept_detection_evaluator \
       python -c "from evaluator import ConceptEvaluator; evaluator = ConceptEvaluator(); result = evaluator._evaluate({'submission_file_path': '/app/submission.csv'}); print(result)"
     ```
@@ -109,5 +109,5 @@ Please note the following when using the scripts or submitting to the ai4mediabe
   * Use quotation marks for all captions, or at least for those that contain a comma (,).
 
 * For concept detection:
-  * Remove duplicate CUIs on a line.
+  * Remove duplicate CUIs on a line. The same concept can not be specified more than once for the same image ID.
   * Use ; to separate CUIs.
